@@ -79,7 +79,7 @@
   </div>
 
   <p class="hint">
-    Hold something and press <kbd>Q</kbd> or <kbd>E</kbd>, or use the wheel, to turn it.
+    Hold something and press <kbd>Q</kbd> or <kbd>E</kbd>, or use the wheel, to turn it. Press <kbd>V</kbd> to switch view.
   </p>
 </section>
 
