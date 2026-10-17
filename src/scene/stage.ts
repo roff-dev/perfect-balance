@@ -17,6 +17,8 @@ export class Stage {
   readonly scene = new THREE.Scene();
   readonly camera = new THREE.PerspectiveCamera(32, 1, 0.05, 60);
   readonly controls: CameraControls;
+  /** Shadow-only floor: the studio has no visible horizon, so nothing betrays the round's scale. */
+  readonly floor: THREE.Mesh;
   private readonly observer: ResizeObserver;
   private readonly timer = new THREE.Timer();
   private readonly framing = new THREE.Sphere(new THREE.Vector3(0, 1.15, 0), 1.8);
@@ -53,11 +55,11 @@ export class Stage {
     Object.assign(key.shadow.camera, { left: -2.6, right: 2.6, top: 3, bottom: -1.5, near: 1, far: 12 });
     this.scene.add(key, new THREE.HemisphereLight('#fffaf2', '#b8a88f', 0.9));
 
-    // Shadow-only floor: the studio has no visible horizon, so nothing betrays the round's scale.
     const floor = new THREE.Mesh(new THREE.PlaneGeometry(30, 30), new THREE.ShadowMaterial({ color: '#4a3a28', opacity: 0.22 }));
     floor.rotation.x = -Math.PI / 2;
     floor.receiveShadow = true;
     this.scene.add(floor);
+    this.floor = floor;
 
     const controls = new CameraControls(this.camera, renderer.domElement);
     controls.smoothTime = 0.18;

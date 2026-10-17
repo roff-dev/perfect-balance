@@ -33,6 +33,8 @@ h3 {
 button {
   font: inherit;
   color: inherit;
+  /* no double-tap zoom, so taps click straight away */
+  touch-action: manipulation;
 }
 
 :focus-visible {

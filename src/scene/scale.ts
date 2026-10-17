@@ -104,6 +104,8 @@ function staticParts(): THREE.Group {
 
 export class ScaleModel {
   readonly group = new THREE.Group();
+  /** Plinth, pads and column: everything that never moves. */
+  readonly base = staticParts();
   readonly beam = new THREE.Group();
   readonly pans: [THREE.Group, THREE.Group] = [new THREE.Group(), new THREE.Group()];
   /** Slides out along +Z when the beam is released. */
@@ -118,7 +120,7 @@ export class ScaleModel {
   private readonly dir = new THREE.Vector3();
 
   constructor() {
-    this.group.add(staticParts());
+    this.group.add(this.base);
 
     const beamBody = shadowed(new THREE.Mesh(beamGeometry(), brass));
     const pointer = shadowed(new THREE.Mesh(new THREE.ConeGeometry(0.022, 0.36, 4), brass));
@@ -156,6 +158,11 @@ export class ScaleModel {
     this.chains.castShadow = true;
     this.chains.frustumCulled = false;
     this.group.add(this.chains);
+  }
+
+  /** What a carried object can be set down on. Not the beam or chains: nothing should be parked up there. */
+  get surfaces(): THREE.Object3D[] {
+    return [...this.pans, this.base];
   }
 
   /** Applies the rig entries (left pan, right pan, beam) of a pose snapshot. */
