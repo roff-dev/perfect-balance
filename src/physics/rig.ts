@@ -24,7 +24,10 @@ export const RIG = {
   panBaseMass: 40,
   panDamping: 2,
   stopAngle: (17 * Math.PI) / 180,
-  padHalf: [0.25, 0.06, 0.25] as Vec3,
+  /** Footprint of the rest pad tops; the pedestals run down to the plinth. */
+  padHalfWidth: 0.2,
+  plinthHalf: [1.2, 0.04, 0.36] as Vec3,
+  columnHalfWidth: 0.04,
   floorHalf: [4, 0.1, 4] as Vec3,
 };
 

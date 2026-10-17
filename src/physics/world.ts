@@ -76,9 +76,16 @@ export class PhysicsWorld {
     this.tmpQuat = new J.Quat(0, 0, 0, 1);
 
     this.addStaticBox(RIG.floorHalf, [0, -RIG.floorHalf[1], 0]);
-    const padY = padTopY() - RIG.padHalf[1];
-    this.addStaticBox(RIG.padHalf, [-RIG.armLength, padY, 0]);
-    this.addStaticBox(RIG.padHalf, [RIG.armLength, padY, 0]);
+    const plinthTop = RIG.plinthHalf[1] * 2;
+    this.addStaticBox(RIG.plinthHalf, [0, RIG.plinthHalf[1], 0]);
+    const padHalfHeight = (padTopY() - plinthTop) / 2;
+    for (const x of [-RIG.armLength, RIG.armLength]) {
+      this.addStaticBox([RIG.padHalfWidth, padHalfHeight, RIG.padHalfWidth], [x, plinthTop + padHalfHeight, 0]);
+    }
+    // stops below the beam: the beam is kinematic and never needs to touch it
+    const columnHalfHeight = (RIG.pivot[1] - 0.12 - plinthTop) / 2;
+    const w = RIG.columnHalfWidth;
+    this.addStaticBox([w, columnHalfHeight, w], [0, plinthTop + columnHalfHeight, 0]);
 
     const beamShape = new J.BoxShape(new J.Vec3(...RIG.beamHalf), 0.01);
     this.beam = this.createBody(beamShape, RIG.pivot, [0, 0, 0, 1], J.EMotionType_Kinematic, LAYER_MOVING);
