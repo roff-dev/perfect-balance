@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount, tick } from 'svelte';
+  import { onMount, tick, untrack } from 'svelte';
   import type { Result } from '../game/judge';
   import type { Round } from '../game/round';
   import InventorySheet from '../ui/InventorySheet.svelte';
@@ -8,12 +8,17 @@
 
   interface Props {
     rounds: Round[];
+    /** Rounds already played, when a game is resumed. */
+    played?: Result[];
+    onresult?: (results: Result[]) => void;
     onfinish: (results: Result[]) => void;
   }
 
-  let { rounds, onfinish }: Props = $props();
+  let { rounds, played = [], onresult, onfinish }: Props = $props();
 
   const ROTATE_STEP = Math.PI / 12;
+  // a new game mounts a new screen, so only the first value matters
+  const resumed = untrack(() => [...played]);
 
   let stage: HTMLDivElement;
   let host: HTMLDivElement;
@@ -23,8 +28,8 @@
   let view = $state<View>('overview');
   let sheet = $state<HTMLElement>();
   let game: Game | undefined;
-  let placing = $state<PlacingState>({ ready: false, round: 0, onPan: {}, panCount: 0, floor: [], full: false, carrying: undefined, putBack: false, phase: 'intro', result: undefined });
-  let results = $state<Result[]>([]);
+  let placing = $state<PlacingState>({ ready: false, round: resumed.length, onPan: {}, panCount: 0, floor: [], full: false, carrying: undefined, putBack: false, phase: 'intro', result: undefined });
+  let results = $state<Result[]>([...resumed]);
   const round = $derived(rounds[placing.round]!);
   const last = $derived(placing.round === rounds.length - 1);
   let thumbs = $state(new Map<string, string>());
@@ -70,14 +75,17 @@
   }
 
   onMount(() => {
-    const g = new Game(host, () => sheet, rounds);
+    const g = new Game(host, () => sheet, rounds, resumed.length);
     g.onView = (v) => (view = v);
     g.onState = (s) => (placing = s);
     g.onAnnounce = (m) => void announce(m);
     g.onSelection = (s) => (selection = s);
     g.onThumbnails = (urls) => (thumbs = urls);
     g.onError = (m) => (error = m);
-    g.onResult = (i, r) => (results[i] = r);
+    g.onResult = (i, r) => {
+      results[i] = r;
+      onresult?.($state.snapshot(results));
+    };
     g.start().catch((e: unknown) => (error = e instanceof Error ? e.message : String(e)));
     game = g;
     measure();

@@ -1,28 +1,63 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import { countdown, msUntilNext } from '../game/daily';
   import { spokenResult, type Result } from '../game/judge';
+  import { drawCard, shareResult, shareText } from '../game/share';
+  import type { Mode } from '../game/storage';
   import Drum from '../ui/Drum.svelte';
   import VerdictGlyph from '../ui/VerdictGlyph.svelte';
 
   interface Props {
     prompts: string[];
     results: Result[];
-    onplay: () => void;
+    /** A numbered puzzle; a game from a seed has none. */
+    puzzle?: { mode: Mode; n: number };
+    /** The streak before and after this game, when it's today's puzzle just finished. */
+    streak?: { from: number; to: number };
+    unsaved: boolean;
+    now: number;
+    ontoast: (message: string) => void;
+    onplay?: () => void;
+    onarchive: () => void;
+    onhome: () => void;
   }
 
-  let { prompts, results, onplay }: Props = $props();
+  let { prompts, results, puzzle, streak, unsaved, now, ontoast, onplay, onarchive, onhome }: Props = $props();
 
   const wins = $derived(results.filter((r) => r.verdict === 'balanced').length);
   let heading: HTMLElement;
+  let card: File | undefined;
+  let shownStreak = $state(0);
 
-  onMount(() => heading.focus());
+  onMount(() => {
+    heading.focus();
+    shownStreak = streak?.from ?? 0;
+    const timer = streak && setTimeout(() => (shownStreak = streak.to), 1100);
+    // drawn now, so sharing can happen straight from the tap
+    if (puzzle) {
+      const n = puzzle.n;
+      void drawCard(n, results, location.host)
+        .then((blob) => (card = new File([blob], `perfect-balance-${n}.png`, { type: 'image/png' })))
+        .catch(() => {});
+    }
+    return () => clearTimeout(timer);
+  });
+
+  async function share(): Promise<void> {
+    if (!puzzle) return;
+    const outcome = await shareResult(shareText(puzzle.n, results, `${location.origin}/`), card);
+    if (outcome === 'copied') ontoast('Copied');
+    else if (outcome === 'failed') ontoast("Couldn't share or copy from this browser.");
+  }
 </script>
 
 <main class="end">
   <h1 class="score" bind:this={heading} tabindex="-1" aria-label="You balanced {wins} out of {results.length}.">
     <span aria-hidden="true"><Drum digit={wins} delay={250} /></span><span class="of" aria-hidden="true">/{results.length}</span>
   </h1>
-  <p class="line">{wins} of {results.length} balanced.</p>
+  <p class="line">
+    {wins} out of {results.length}.{#if puzzle?.mode === 'daily'}{' '}Same time tomorrow.{/if}
+  </p>
 
   <ol class="list">
     {#each results as result, i (i)}
@@ -35,7 +70,38 @@
     {/each}
   </ol>
 
-  <button type="button" class="play" onclick={onplay}>Play again</button>
+  <div class="actions">
+    {#if puzzle}
+      <button type="button" class="primary" onclick={share}>Share</button>
+    {:else if onplay}
+      <button type="button" class="primary" onclick={onplay}>Play again</button>
+    {/if}
+    <nav class="links">
+      {#if puzzle?.mode === 'archive'}
+        <button type="button" class="link" onclick={onarchive}>Back to the archive</button>
+      {:else}
+        <button type="button" class="link" onclick={onarchive}>Archive</button>
+      {/if}
+      <button type="button" class="link" onclick={onhome}>{puzzle?.mode === 'daily' ? 'Home' : "Today's puzzle"}</button>
+    </nav>
+  </div>
+
+  <div class="tally">
+    {#if streak}
+      <p class="streak">
+        Streak
+        {#key shownStreak}
+          <strong class:grew={shownStreak === streak.to && streak.to > streak.from}>{shownStreak}</strong>
+        {/key}
+      </p>
+    {/if}
+    {#if puzzle}
+      <p>New puzzle in <span class="time">{countdown(msUntilNext(now))}</span></p>
+    {/if}
+    {#if unsaved}
+      <p class="unsaved">Progress won't be saved in this browser.</p>
+    {/if}
+  </div>
 </main>
 
 <style>
@@ -120,7 +186,12 @@
     white-space: nowrap;
   }
 
-  .play {
+  .actions {
+    display: grid;
+    gap: var(--space-2);
+  }
+
+  .primary {
     min-height: 52px;
     border: 0;
     border-radius: var(--radius-control);
@@ -131,8 +202,58 @@
     cursor: pointer;
   }
 
-  .play:active {
+  .primary:active {
     transform: scale(0.98);
+  }
+
+  .links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 var(--space-5);
+  }
+
+  .link {
+    min-height: var(--target);
+    padding: 0;
+    border: 0;
+    background: none;
+    font-weight: 600;
+    text-decoration: underline;
+    text-decoration-color: var(--brass);
+    text-decoration-thickness: 2px;
+    text-underline-offset: 5px;
+    cursor: pointer;
+  }
+
+  .link:hover {
+    text-decoration-color: var(--ink);
+  }
+
+  .tally {
+    color: var(--ink-soft);
+    font-size: var(--text-small);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .tally p {
+    margin: 0;
+  }
+
+  .streak strong {
+    display: inline-block;
+    color: var(--ink);
+  }
+
+  /* the new number drops in like the next figure on a counter */
+  .grew {
+    animation: tick-over 420ms cubic-bezier(0.3, 1.4, 0.5, 1);
+  }
+
+  @keyframes tick-over {
+    from {
+      opacity: 0;
+      transform: translateY(-0.7em);
+    }
   }
 
   .visually-hidden {
@@ -145,8 +266,13 @@
   }
 
   @media (min-width: 768px) {
-    .play {
-      align-self: flex-start;
+    .actions {
+      grid-template-columns: auto 1fr;
+      align-items: center;
+      gap: var(--space-5);
+    }
+
+    .primary {
       padding: 0 var(--space-6);
     }
   }
@@ -159,7 +285,7 @@
       grid-template-areas:
         'score list'
         'line list'
-        '. play';
+        'tally actions';
       align-content: center;
       gap: var(--space-3) var(--space-6);
       width: min(100%, 48rem);
@@ -183,8 +309,20 @@
       padding: 0;
     }
 
-    .play {
-      grid-area: play;
+    .actions {
+      grid-area: actions;
+      grid-template-columns: auto 1fr;
+      align-items: center;
+      gap: var(--space-4);
+    }
+
+    .primary {
+      padding: 0 var(--space-6);
+    }
+
+    .tally {
+      grid-area: tally;
+      align-self: center;
     }
   }
 </style>

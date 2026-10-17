@@ -102,7 +102,7 @@ export class Game implements GestureTarget {
   private kinds = new Map<string, Kind>();
   /** The next round's objects, built while this round's result is showing. */
   private prepared: Map<string, Kind> | undefined;
-  private index = 0;
+  private index: number;
   private readonly bodies = new Map<number, Placed>();
   private readonly ray = new THREE.Raycaster();
   private readonly ndc = new THREE.Vector2();
@@ -145,6 +145,8 @@ export class Game implements GestureTarget {
     host: HTMLElement,
     private readonly sheet: () => HTMLElement | undefined,
     private readonly rounds: Round[],
+    /** Where a resumed game picks up. */
+    first = 0,
   ) {
     const lowEnd = (navigator.hardwareConcurrency ?? 8) <= 4;
     this.stage = new Stage(host, { shadowMapSize: lowEnd ? 1024 : 2048, maxPixelRatio: lowEnd ? 1.5 : 2 });
@@ -155,6 +157,7 @@ export class Game implements GestureTarget {
     this.setView('overview', false);
     this.canvas = this.stage.renderer.domElement;
     this.physics.onError = (m) => this.onError(m);
+    this.index = first;
     this.kinds = this.makeKinds(this.round);
     this.gestures = new Gestures(this);
     this.canvas.addEventListener('pointermove', this.hover);
