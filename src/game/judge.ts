@@ -2,6 +2,11 @@ import { CONFIG } from './config';
 
 export type Verdict = 'balanced' | 'heavy' | 'light';
 
+export interface Margin {
+  min: number;
+  max: number;
+}
+
 export interface Result {
   totalKg: number;
   /** Player's total over the prompt's weight. */
@@ -17,9 +22,9 @@ export const VERDICT_WORDS: Record<Verdict, string> = {
   light: 'Too light.',
 };
 
-export function verdictFor(ratio: number): Verdict {
-  if (ratio > CONFIG.margin.max) return 'heavy';
-  if (ratio < CONFIG.margin.min) return 'light';
+export function verdictFor(ratio: number, margin: Margin = CONFIG.margin): Verdict {
+  if (ratio > margin.max) return 'heavy';
+  if (ratio < margin.min) return 'light';
   return 'balanced';
 }
 
@@ -31,10 +36,10 @@ export function formatPercent(ratio: number): string {
 }
 
 /** Only what's on the player's pan counts; anything on the floor is ignored. */
-export function judge(bodies: { kg: number; onPan: boolean }[], promptKg: number): Result {
+export function judge(bodies: { kg: number; onPan: boolean }[], promptKg: number, margin: Margin = CONFIG.margin): Result {
   const totalKg = bodies.reduce((sum, b) => (b.onPan ? sum + b.kg : sum), 0);
   const ratio = totalKg / promptKg;
-  return { totalKg, ratio, verdict: verdictFor(ratio), percent: formatPercent(ratio) };
+  return { totalKg, ratio, verdict: verdictFor(ratio, margin), percent: formatPercent(ratio) };
 }
 
 /** A result rebuilt from saved progress. The saved win stands even if the window has changed since. */

@@ -2,6 +2,23 @@ import type { Dimensions, ShapeKind } from '../game/shapes';
 
 export type SizeContradiction = 'large-light' | 'small-heavy';
 
+export type Theme = 'food' | 'home' | 'yard' | 'animals';
+
+export const THEME_NAMES: Record<Theme, string> = {
+  food: 'Food and drink',
+  home: 'Around the house',
+  yard: 'Yard and garage',
+  animals: 'Animals',
+};
+
+/** Freeplay themes. An entry can be in more than one. */
+const THEMED: Record<Theme, string[]> = {
+  food: ['sugar-cube', 'walnut', 'crisps', 'egg', 'clementine', 'lemon', 'apple', 'beans', 'honey', 'milk', 'bread', 'sugar', 'wine', 'pineapple', 'water-bottle', 'watermelon', 'potatoes', 'keg'],
+  home: ['lego-brick', 'die', 'marble', 'two-pence', 'pound-coin', 'aa-battery', 'smartphone', 'balloon', 'paperback', 'mug', 'cushion', 'cardboard-box', 'laptop', 'dictionary', 'doorstop', 'cat', 'retriever', 'microwave', 'suitcase', 'mattress', 'sofa', 'washing-machine', 'fridge', 'upright-piano'],
+  yard: ['aa-battery', 'cardboard-box', 'doorstop', 'brick', 'scale-weight', 'tyre', 'bucket', 'wheelie-bin', 'car-battery', 'hay-bale', 'cement', 'oil-drum', 'round-bale', 'safe', 'pallet-bricks', 'car', 'granite'],
+  animals: ['egg', 'walnut', 'cat', 'retriever', 'sheep', 'panda', 'horse', 'cow', 'rhino', 'hay-bale', 'round-bale'],
+};
+
 export interface CatalogueEntry {
   id: string;
   /** Descriptive enough to picture: "Bag of cement", not "Cement". */
@@ -13,6 +30,7 @@ export interface CatalogueEntry {
   sizeContradiction?: SizeContradiction;
   shape: ShapeKind;
   color: string;
+  themes: Theme[];
   /** Catalogue version the entry first appeared in; older puzzles never see newer entries. */
   addedIn: number;
 }
@@ -31,6 +49,7 @@ function entry(id: string, name: string, weightKg: number, [l, w, h]: [number, n
     ...(contradiction && { sizeContradiction: contradiction }),
     shape,
     color,
+    themes: (Object.keys(THEMED) as Theme[]).filter((t) => THEMED[t].includes(id)),
     addedIn: 1,
   };
 }
