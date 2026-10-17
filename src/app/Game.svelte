@@ -1,21 +1,32 @@
 <script lang="ts">
   import { onMount, tick } from 'svelte';
-  import { practiceRound } from '../game/practice';
+  import type { Result } from '../game/judge';
+  import type { Round } from '../game/round';
   import InventorySheet from '../ui/InventorySheet.svelte';
+  import VerdictGlyph from '../ui/VerdictGlyph.svelte';
   import { Game, type PlacingState, type Selection, type View } from './game';
 
+  interface Props {
+    rounds: Round[];
+    onfinish: (results: Result[]) => void;
+  }
+
+  let { rounds, onfinish }: Props = $props();
+
   const ROTATE_STEP = Math.PI / 12;
-  const round = practiceRound();
 
   let stage: HTMLDivElement;
   let host: HTMLDivElement;
-  let promptLabel: HTMLElement;
+  let top: HTMLElement;
   let toggle: HTMLElement;
   let foot: HTMLElement;
   let view = $state<View>('overview');
   let sheet = $state<HTMLElement>();
   let game: Game | undefined;
-  let placing = $state<PlacingState>({ ready: false, onPan: {}, panCount: 0, floor: [], full: false, carrying: undefined, putBack: false, phase: 'placing', result: undefined });
+  let placing = $state<PlacingState>({ ready: false, round: 0, onPan: {}, panCount: 0, floor: [], full: false, carrying: undefined, putBack: false, phase: 'intro', result: undefined });
+  let results = $state<Result[]>([]);
+  const round = $derived(rounds[placing.round]!);
+  const last = $derived(placing.round === rounds.length - 1);
   let thumbs = $state(new Map<string, string>());
   let selection = $state<Selection | null>(null);
   let announcement = $state('');
@@ -48,9 +59,9 @@
   /** Keeps the framed scale clear of the prompt, the View button and the status line. */
   function measure(): void {
     const s = stage.getBoundingClientRect();
-    const top = Math.max(promptLabel.getBoundingClientRect().bottom, toggle.getBoundingClientRect().bottom) - s.top;
+    const clear = Math.max(top.getBoundingClientRect().bottom, toggle.getBoundingClientRect().bottom) - s.top;
     const bottom = s.bottom - foot.getBoundingClientRect().top;
-    game?.setInsets({ top: top + 8, right: 12, bottom: bottom + 4, left: 12 });
+    game?.setInsets({ top: clear + 8, right: 12, bottom: bottom + 4, left: 12 });
   }
 
   function keydown(e: KeyboardEvent): void {
@@ -59,19 +70,20 @@
   }
 
   onMount(() => {
-    const g = new Game(host, () => sheet, round);
+    const g = new Game(host, () => sheet, rounds);
     g.onView = (v) => (view = v);
     g.onState = (s) => (placing = s);
     g.onAnnounce = (m) => void announce(m);
     g.onSelection = (s) => (selection = s);
     g.onThumbnails = (urls) => (thumbs = urls);
     g.onError = (m) => (error = m);
+    g.onResult = (i, r) => (results[i] = r);
     g.start().catch((e: unknown) => (error = e instanceof Error ? e.message : String(e)));
     game = g;
     measure();
     const observer = new ResizeObserver(measure);
     observer.observe(stage);
-    observer.observe(promptLabel);
+    observer.observe(top);
     void document.fonts.ready.then(measure);
     return () => {
       observer.disconnect();
@@ -86,7 +98,21 @@
   <div class="stage" bind:this={stage}>
     <div class="canvas" bind:this={host} role="img" aria-label={description}></div>
 
-    <h1 class="prompt" bind:this={promptLabel}>{round.prompt.name}</h1>
+    <header class="top" bind:this={top}>
+      <p class="rounds">
+        <span class="visually-hidden">Round {placing.round + 1} of {rounds.length}</span>
+        {#each rounds as _, i (i)}
+          {#if results[i]}
+            <span class="dot {results[i].verdict}"><VerdictGlyph verdict={results[i].verdict} /></span>
+          {:else}
+            <span class="dot" class:current={i === placing.round} aria-hidden="true"></span>
+          {/if}
+        {/each}
+      </p>
+      {#key placing.round}
+        <h1 class="prompt">{round.prompt.name}</h1>
+      {/key}
+    </header>
 
     <button
       type="button"
@@ -142,7 +168,8 @@
     onreset={() => game?.reset()}
     onreturnall={() => game?.returnAll()}
     onlockin={() => game?.lockIn()}
-    onnext={() => game?.nextRound()}
+    {last}
+    onnext={() => (last ? onfinish(results) : game?.nextRound())}
   />
 
   <div class="visually-hidden" aria-live="polite">{announcement}</div>
@@ -179,12 +206,61 @@
     height: 100%;
   }
 
-  .prompt {
+  .top {
     position: absolute;
     top: max(var(--space-4), env(safe-area-inset-top));
     left: max(var(--space-4), env(safe-area-inset-left));
     /* leaves room for the View button */
-    max-width: min(16ch, calc(100% - 2 * var(--space-4) - 150px));
+    max-width: min(26rem, calc(100% - 2 * var(--space-4) - 150px));
+    pointer-events: none;
+  }
+
+  .rounds {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    height: 14px;
+    margin: 0 0 var(--space-2);
+  }
+
+  .dot {
+    display: grid;
+    place-items: center;
+    width: 10px;
+    height: 10px;
+    border: 1.5px solid var(--ink-soft);
+    border-radius: 50%;
+    font-size: 14px;
+  }
+
+  .dot.current {
+    background: var(--ink);
+    border-color: var(--ink);
+  }
+
+  /* a finished round shows its verdict glyph instead */
+  .dot.balanced,
+  .dot.heavy,
+  .dot.light {
+    width: 14px;
+    border: 0;
+    border-radius: 0;
+  }
+
+  .dot.balanced {
+    color: var(--balanced);
+  }
+
+  .dot.heavy {
+    color: var(--heavy);
+  }
+
+  .dot.light {
+    color: var(--light);
+  }
+
+  .prompt {
+    max-width: 16ch;
     display: -webkit-box;
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 2;
@@ -193,7 +269,14 @@
     font-size: clamp(26px, 3vw + 14px, 44px);
     line-height: 1.02;
     letter-spacing: -0.01em;
-    pointer-events: none;
+    animation: arrive 400ms ease-out;
+  }
+
+  @keyframes arrive {
+    from {
+      opacity: 0;
+      transform: translateY(-0.15em);
+    }
   }
 
   /* only shows where the scale passes behind the text */
@@ -315,8 +398,13 @@
       font-size: 24px;
     }
 
+    .top,
     .view {
       top: max(var(--space-3), env(safe-area-inset-top));
+    }
+
+    .rounds {
+      margin-bottom: var(--space-1);
     }
 
     .foot {
@@ -335,7 +423,7 @@
       grid-template-columns: minmax(0, 1fr) 320px;
     }
 
-    .prompt {
+    .top {
       top: var(--space-6);
       left: var(--space-6);
     }

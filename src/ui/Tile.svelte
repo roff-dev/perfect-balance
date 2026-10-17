@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { Item } from '../game/practice';
+  import type { Item } from '../game/round';
 
   interface Props {
     item: Item;

@@ -1,11 +1,11 @@
 import * as THREE from 'three';
 import { CONFIG } from '../game/config';
 import { judge, spokenResult, type Result } from '../game/judge';
-import type { Item, Round } from '../game/practice';
+import type { Item, Round } from '../game/round';
 import { tipFor, WOBBLE, type BeamMotion } from '../physics/beam';
 import { PhysicsClient } from '../physics/client';
 import { POSE_STRIDE, RIG_ENTRIES, type Snapshot } from '../physics/protocol';
-import { locate, panRestY, RIG, type Quat, type Vec3 } from '../physics/rig';
+import { locate, PAN_FLOOR_TOP, panRestY, RIG, type Quat, type Vec3 } from '../physics/rig';
 import { BodyMeshes, hullGeometry } from '../scene/bodies';
 import { Ghost, type Pose } from '../scene/ghost';
 import { Gestures, type Aim, type CarrySource, type GestureTarget } from '../scene/gestures';
@@ -27,7 +27,7 @@ const OVERVIEW_DIRECTION = new THREE.Vector3(0.35, 0.9, 4).normalize();
 const CLOSE_DIRECTION = new THREE.Vector3().setFromSphericalCoords(1, THREE.MathUtils.degToRad(52), 0.5);
 
 export type View = 'overview' | 'close';
-export type Phase = 'placing' | 'locking' | 'revealing' | 'result' | 'clearing';
+export type Phase = 'intro' | 'placing' | 'locking' | 'revealing' | 'result' | 'clearing';
 
 /** Lock-in choreography, in seconds; the second number is the reduced-motion version. */
 const FADE_SECONDS = 0.18;
@@ -36,6 +36,9 @@ const PIN_SECONDS = [0.35, 0.1] as const;
 const RESULT_DELAY = [0.5, 0.3] as const;
 const LEVEL_SECONDS = [0.5, 0.15] as const;
 const PIN_TRAVEL = 0.14;
+/** The prompt is lowered onto its pan from this far above, over this long. */
+const INTRO_DROP = 1.2;
+const INTRO_SECONDS = 1.1;
 
 const reducedMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -47,6 +50,8 @@ export interface FloorGroup {
 
 export interface PlacingState {
   ready: boolean;
+  /** Which of the game's rounds is on the scale. */
+  round: number;
   onPan: Record<string, number>;
   panCount: number;
   floor: FloorGroup[];
@@ -85,6 +90,7 @@ export class Game implements GestureTarget {
   onThumbnails: (urls: Map<string, string>) => void = () => {};
   onError: (message: string) => void = () => {};
   onView: (view: View) => void = () => {};
+  onResult: (round: number, result: Result) => void = () => {};
 
   readonly canvas: HTMLCanvasElement;
   private readonly stage: Stage;
@@ -93,7 +99,10 @@ export class Game implements GestureTarget {
   private readonly physics = new PhysicsClient();
   private readonly ghost = new Ghost();
   private readonly gestures: Gestures;
-  private readonly kinds = new Map<string, Kind>();
+  private kinds = new Map<string, Kind>();
+  /** The next round's objects, built while this round's result is showing. */
+  private prepared: Map<string, Kind> | undefined;
+  private index = 0;
   private readonly bodies = new Map<number, Placed>();
   private readonly ray = new THREE.Raycaster();
   private readonly ndc = new THREE.Vector2();
@@ -105,7 +114,10 @@ export class Game implements GestureTarget {
     // drawn over the stack, which would otherwise hide it
     new THREE.MeshBasicMaterial({ color: INK, transparent: true, opacity: 0.7, depthTest: false, depthWrite: false }),
   );
-  private thumbnails = new Map<string, string>();
+  /** Kept across rounds: an object looks the same whatever the round's scale. */
+  private readonly thumbnails = new Map<string, string>();
+  private promptRest: Pose | undefined;
+  private introTime = 0;
   private nextId = 1;
   private time = 0;
   private ready = false;
@@ -119,7 +131,7 @@ export class Game implements GestureTarget {
   private readonly panAt = new THREE.Vector3();
   private readonly panMoved = new THREE.Vector3();
   private promptId = 0;
-  private phase: Phase = 'placing';
+  private phase: Phase = 'intro';
   private phaseTime = 0;
   private calm = false;
   private result: Result | undefined;
@@ -132,7 +144,7 @@ export class Game implements GestureTarget {
   constructor(
     host: HTMLElement,
     private readonly sheet: () => HTMLElement | undefined,
-    private readonly round: Round,
+    private readonly rounds: Round[],
   ) {
     const lowEnd = (navigator.hardwareConcurrency ?? 8) <= 4;
     this.stage = new Stage(host, { shadowMapSize: lowEnd ? 1024 : 2048, maxPixelRatio: lowEnd ? 1.5 : 2 });
@@ -143,16 +155,10 @@ export class Game implements GestureTarget {
     this.setView('overview', false);
     this.canvas = this.stage.renderer.domElement;
     this.physics.onError = (m) => this.onError(m);
-
-    for (const item of [round.prompt, ...round.inventory]) {
-      this.kinds.set(item.id, {
-        item,
-        geometry: hullGeometry(item.points),
-        material: new THREE.MeshStandardMaterial({ color: item.color, roughness: 0.8, flatShading: true }),
-      });
-    }
+    this.kinds = this.makeKinds(this.round);
     this.gestures = new Gestures(this);
     this.canvas.addEventListener('pointermove', this.hover);
+    addEventListener('pointerdown', this.skipIntro, true);
     // hooks for the browser tests; the whole block is dropped from production builds
     if (import.meta.env.DEV) {
       const yawOf = (q: THREE.Quaternion) => new THREE.Euler().setFromQuaternion(q, 'YXZ').y;
@@ -163,6 +169,7 @@ export class Game implements GestureTarget {
             const selected = this.selected === undefined ? undefined : this.meshes.get(this.selected);
             return {
               ready: this.ready,
+              round: this.index,
               carrying: this.ghost.active,
               placed: this.bodies.size,
               ...this.counts(),
@@ -214,35 +221,89 @@ export class Game implements GestureTarget {
           },
           put: (itemId: string, x: number, y: number, z: number) => this.addBody(itemId, { pos: [x, y, z], quat: [0, 0, 0, 1] }),
           lockIn: () => this.lockIn(),
+          round: () => ({
+            index: this.index,
+            prompt: { id: this.round.prompt.id, kg: this.round.prompt.kg },
+            inventory: this.round.inventory.map(({ id, kg }) => ({ id, kg })),
+            solution: this.round.solution,
+          }),
         },
       });
     }
   }
 
+  private get round(): Round {
+    return this.rounds[this.index]!;
+  }
+
   async start(): Promise<void> {
     this.stage.start((dt) => this.frame(dt));
-    void renderThumbnails(this.round.inventory.map((item) => ({ id: item.id, ...this.kind(item.id) })))
+    this.renderThumbnails(this.round);
+    await this.physics.init({ unitsPerMetre: this.round.unitsPerMetre });
+    this.ready = true;
+    this.beginIntro();
+  }
+
+  private makeKinds(round: Round): Map<string, Kind> {
+    const kinds = new Map<string, Kind>();
+    for (const item of [round.prompt, ...round.inventory]) {
+      kinds.set(item.id, {
+        item,
+        geometry: hullGeometry(item.points),
+        material: new THREE.MeshStandardMaterial({ color: item.color, roughness: 0.8, flatShading: true }),
+      });
+    }
+    return kinds;
+  }
+
+  private disposeKinds(kinds: Map<string, Kind>): void {
+    for (const { geometry, material } of kinds.values()) {
+      geometry.dispose();
+      material.dispose();
+    }
+  }
+
+  /** Pictures for a round's tiles, from its kinds once they're built. */
+  private renderThumbnails(round: Round, kinds = this.kinds): void {
+    const missing = round.inventory.filter((item) => !this.thumbnails.has(item.id)).map((item) => ({ id: item.id, ...kinds.get(item.id)! }));
+    void renderThumbnails(missing)
       .then((urls) => {
         if (this.disposed) return urls.forEach((url) => URL.revokeObjectURL(url));
-        this.thumbnails = urls;
-        this.onThumbnails(urls);
+        for (const [id, url] of urls) this.thumbnails.set(id, url);
+        this.onThumbnails(new Map(this.thumbnails));
       })
       // the tiles fall back to flat colour swatches
       .catch(() => {});
-    await this.physics.init({ unitsPerMetre: this.round.unitsPerMetre });
-    this.addPrompt();
-    this.ready = true;
   }
 
-  /** The prompt sits on the left pan; it's never one of the player's bodies. */
-  private addPrompt(): void {
+  /**
+   * The prompt is lowered onto the left pan outside physics, then set down; it's never one of
+   * the player's bodies. Any tap skips the rest of the descent.
+   */
+  private beginIntro(): void {
     const prompt = this.kind(this.round.prompt.id);
-    const pose: Pose = { pos: [-RIG.armLength, panRestY() + 0.25, 0], quat: [0, 0, 0, 1] };
+    let bottom = Infinity;
+    for (let i = 1; i < prompt.item.points.length; i += 3) bottom = Math.min(bottom, prompt.item.points[i]!);
+    this.promptRest = { pos: [-RIG.armLength, panRestY() + PAN_FLOOR_TOP - bottom + 0.005, 0], quat: [0, 0, 0, 1] };
     const id = this.nextId++;
     this.promptId = id;
-    this.meshes.add(id, prompt.geometry, prompt.material, pose);
-    this.physics.add({ id, points: this.round.prompt.points, ...pose });
+    const mesh = this.meshes.add(id, prompt.geometry, prompt.material, this.promptRest);
+    // framed where it will rest, not where it starts
+    if (this.view === 'overview') this.setView('overview');
+    this.introTime = 0;
+    this.setPhase('intro');
+    if (reducedMotion()) this.endIntro();
+    else mesh.position.y += INTRO_DROP;
   }
+
+  private endIntro(): void {
+    if (this.phase !== 'intro' || !this.promptRest) return;
+    this.meshes.get(this.promptId)?.position.fromArray(this.promptRest.pos);
+    this.physics.add({ id: this.promptId, points: this.round.prompt.points, ...this.promptRest });
+    this.setPhase('placing');
+  }
+
+  private readonly skipIntro = (): void => this.endIntro();
 
   setView(view: View, animate = true): void {
     this.view = view;
@@ -331,6 +392,7 @@ export class Game implements GestureTarget {
   }
 
   pickUp(source: CarrySource): boolean {
+    this.endIntro();
     if (!this.ready || this.phase !== 'placing' || this.ghost.active) return false;
     let itemId: string;
     let restore: Pose | undefined;
@@ -452,6 +514,7 @@ export class Game implements GestureTarget {
    * the reveal can change it.
    */
   lockIn(): void {
+    this.endIntro();
     if (!this.ready || this.phase !== 'placing' || this.carrying) return;
     this.calm = reducedMotion();
     const bodies = [...this.bodies].map(([id, b]) => ({ id, kg: this.kind(b.itemId).item.kg, onPan: b.onPan }));
@@ -476,7 +539,7 @@ export class Game implements GestureTarget {
    * in one step would yank the pans and fling anything on them.
    */
   nextRound(): void {
-    if (this.phase !== 'result') return;
+    if (this.phase !== 'result' || this.index + 1 >= this.rounds.length) return;
     this.calm = reducedMotion();
     for (const id of [...this.bodies.keys()]) this.removeBody(id);
     this.physics.remove(this.promptId);
@@ -517,15 +580,41 @@ export class Game implements GestureTarget {
       if (this.phaseTime >= PIN_SECONDS[i] + RESULT_DELAY[i]) {
         this.setPhase('result');
         this.onAnnounce(spokenResult(this.result!));
+        this.onResult(this.index, this.result!);
+        this.prepareNext();
       }
     } else if (this.phase === 'clearing' && this.phaseTime >= LEVEL_SECONDS[i] + 0.1) {
       this.physics.unlock();
       this.pinTarget = 0;
-      this.addPrompt();
-      this.setPhase('placing');
+      this.loadNext();
+    } else if (this.phase === 'intro') {
+      this.introTime += dt;
+      const t = Math.min(1, this.introTime / INTRO_SECONDS);
+      const mesh = this.meshes.get(this.promptId);
+      if (mesh && this.promptRest) mesh.position.y = this.promptRest.pos[1] + INTRO_DROP * (1 - t) ** 3;
+      if (t >= 1) this.endIntro();
     }
     this.pinOut += (this.pinTarget - this.pinOut) * Math.min(1, dt * (this.calm ? 40 : 14));
     this.scale.pin.position.z = 0.07 + this.pinOut * PIN_TRAVEL;
+  }
+
+  /** Builds the next round's objects and tile pictures while this result is on screen. */
+  private prepareNext(): void {
+    const next = this.rounds[this.index + 1];
+    if (!next || this.prepared) return;
+    this.prepared = this.makeKinds(next);
+    this.renderThumbnails(next, this.prepared);
+  }
+
+  private loadNext(): void {
+    this.prepareNext();
+    this.disposeKinds(this.kinds);
+    this.kinds = this.prepared!;
+    this.prepared = undefined;
+    this.index++;
+    // the world is empty here, so it can change size
+    this.physics.scale({ unitsPerMetre: this.round.unitsPerMetre });
+    this.beginIntro();
   }
 
   private frame(dt: number): void {
@@ -614,6 +703,7 @@ export class Game implements GestureTarget {
     }
     const state: PlacingState = {
       ready: this.ready,
+      round: this.index,
       onPan,
       panCount,
       floor: this.round.inventory
@@ -635,12 +725,11 @@ export class Game implements GestureTarget {
     this.disposed = true;
     this.gestures.dispose();
     this.canvas.removeEventListener('pointermove', this.hover);
+    removeEventListener('pointerdown', this.skipIntro, true);
     this.stage.dispose();
     this.physics.dispose();
     for (const url of this.thumbnails.values()) URL.revokeObjectURL(url);
-    for (const { geometry, material } of this.kinds.values()) {
-      geometry.dispose();
-      material.dispose();
-    }
+    this.disposeKinds(this.kinds);
+    if (this.prepared) this.disposeKinds(this.prepared);
   }
 }

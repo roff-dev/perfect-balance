@@ -1,7 +1,7 @@
 <script lang="ts">
   import { Spring, prefersReducedMotion } from 'svelte/motion';
   import type { PlacingState } from '../app/game';
-  import type { Item } from '../game/practice';
+  import type { Item } from '../game/round';
   import HoldButton from './HoldButton.svelte';
   import Readout from './Readout.svelte';
   import Tile from './Tile.svelte';
@@ -14,10 +14,12 @@
     onreturnall: () => void;
     onlockin: () => void;
     onnext: () => void;
+    /** After the last round the button leads to the score instead. */
+    last: boolean;
     element?: HTMLElement;
   }
 
-  let { items, thumbs, placing, onreset, onreturnall, onlockin, onnext, element = $bindable() }: Props = $props();
+  let { items, thumbs, placing, onreset, onreturnall, onlockin, onnext, last, element = $bindable() }: Props = $props();
 
   const sink = new Spring(0, { stiffness: 0.2, damping: 0.55 });
   $effect(() => {
@@ -25,7 +27,8 @@
   });
 
   const floorCount = $derived(placing.floor.reduce((n, f) => n + f.count, 0));
-  const placingPhase = $derived(placing.phase === 'placing');
+  // the prompt's short descent counts as placing: touching anything skips it
+  const placingPhase = $derived(placing.phase === 'placing' || placing.phase === 'intro');
   const lockLabel = $derived(
     placing.phase === 'locking' || placing.phase === 'revealing' ? 'Weighing…' : placing.panCount === 0 ? 'Lock in (empty pan)' : 'Hold to lock in',
   );
@@ -90,7 +93,7 @@
 
   <div class="actions">
     {#if placing.phase === 'result'}
-      <button type="button" class="next" onclick={onnext}>Next round</button>
+      <button type="button" class="next" onclick={onnext}>{last ? 'See your score' : 'Next round'}</button>
     {:else}
       <HoldButton
         label="Reset"
