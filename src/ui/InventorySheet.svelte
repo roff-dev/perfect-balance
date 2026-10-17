@@ -3,6 +3,7 @@
   import type { PlacingState } from '../app/game';
   import type { Item } from '../game/practice';
   import HoldButton from './HoldButton.svelte';
+  import Readout from './Readout.svelte';
   import Tile from './Tile.svelte';
 
   interface Props {
@@ -11,10 +12,12 @@
     placing: PlacingState;
     onreset: () => void;
     onreturnall: () => void;
+    onlockin: () => void;
+    onnext: () => void;
     element?: HTMLElement;
   }
 
-  let { items, thumbs, placing, onreset, onreturnall, element = $bindable() }: Props = $props();
+  let { items, thumbs, placing, onreset, onreturnall, onlockin, onnext, element = $bindable() }: Props = $props();
 
   const sink = new Spring(0, { stiffness: 0.2, damping: 0.55 });
   $effect(() => {
@@ -22,6 +25,10 @@
   });
 
   const floorCount = $derived(placing.floor.reduce((n, f) => n + f.count, 0));
+  const placingPhase = $derived(placing.phase === 'placing');
+  const lockLabel = $derived(
+    placing.phase === 'locking' || placing.phase === 'revealing' ? 'Weighing…' : placing.panCount === 0 ? 'Lock in (empty pan)' : 'Hold to lock in',
+  );
 </script>
 
 <section
@@ -32,26 +39,33 @@
   aria-label="Things to weigh"
   style:--sink="{sink.current}px"
 >
-  <div class="tray">
+  <div class="stack">
+  <div class="tray" class:hidden={placing.result}>
     <div class="well" data-strip>
       {#each items as item (item.id)}
         <Tile
           {item}
           thumb={thumbs.get(item.id)}
           count={placing.onPan[item.id] ?? 0}
-          full={placing.full}
+          full={placing.full || !placingPhase}
           held={placing.carrying === item.id}
         />
       {/each}
     </div>
     <p class="put-back-label" aria-hidden="true">Put back</p>
   </div>
+  {#if placing.result}
+    <div class="result">
+      <Readout result={placing.result} />
+    </div>
+  {/if}
+  </div>
 
-  {#if placing.full}
+  {#if placing.full && placingPhase}
     <p class="cap">That's plenty — the pan's full.</p>
   {/if}
 
-  {#if floorCount > 0}
+  {#if floorCount > 0 && placingPhase}
     <div class="floor">
       <p class="floor-title">On the floor ({floorCount})</p>
       <div class="chips" data-strip>
@@ -75,12 +89,33 @@
   {/if}
 
   <div class="actions">
-    <HoldButton label="Reset" name="Reset pan, hold to confirm" onconfirm={onreset} disabled={placing.panCount === 0} />
+    {#if placing.phase === 'result'}
+      <button type="button" class="next" onclick={onnext}>Next round</button>
+    {:else}
+      <HoldButton
+        label="Reset"
+        name="Reset pan, hold to confirm"
+        onconfirm={onreset}
+        disabled={!placingPhase || placing.panCount === 0}
+      />
+      <div class="lock">
+        <HoldButton
+          primary
+          label={lockLabel}
+          holdingLabel="Keep holding"
+          name="Lock in, hold to confirm"
+          onconfirm={onlockin}
+          disabled={!placingPhase || !placing.ready}
+        />
+      </div>
+    {/if}
   </div>
 
-  <p class="hint">
-    Hold something and press <kbd>Q</kbd> or <kbd>E</kbd>, or use the wheel, to turn it. Press <kbd>V</kbd> to switch view.
-  </p>
+  {#if placingPhase}
+    <p class="hint">
+      Hold something and press <kbd>Q</kbd> or <kbd>E</kbd>, or use the wheel, to turn it. Press <kbd>V</kbd> to switch view.
+    </p>
+  {/if}
 </section>
 
 <style>
@@ -99,6 +134,29 @@
     border-radius: 20px 20px 0 0;
     box-shadow: 0 -12px 32px -24px rgb(31 27 23 / 0.35);
     transform: translate3d(0, var(--sink), 0);
+  }
+
+  /* the result takes the tray's place at the same size, so the scene doesn't resize mid-reveal */
+  .stack {
+    display: grid;
+    grid-template: minmax(0, 1fr) / minmax(0, 1fr);
+  }
+
+  .stack > * {
+    grid-area: 1 / 1;
+  }
+
+  .tray.hidden {
+    visibility: hidden;
+  }
+
+  .result {
+    --drum-size: 56px;
+    --verdict-size: 24px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 0 max(var(--space-4), env(safe-area-inset-right)) 0 max(var(--space-4), env(safe-area-inset-left));
   }
 
   .tray {
@@ -237,6 +295,38 @@
     padding: 0 max(var(--space-4), env(safe-area-inset-right)) 0 max(var(--space-4), env(safe-area-inset-left));
   }
 
+  .lock {
+    flex: 1;
+    display: flex;
+  }
+
+  .lock :global(.hold) {
+    flex: 1;
+  }
+
+  .next {
+    flex: 1;
+    min-height: var(--target);
+    border: 0;
+    border-radius: var(--radius-control);
+    background: var(--enamel);
+    color: var(--on-enamel);
+    font-size: 17px;
+    font-weight: 600;
+    cursor: pointer;
+    animation: arrive 260ms ease-out;
+  }
+
+  .next:active {
+    transform: scale(0.98);
+  }
+
+  @keyframes arrive {
+    from {
+      opacity: 0;
+    }
+  }
+
   .hint {
     display: none;
     margin: 0;
@@ -270,7 +360,7 @@
   @media (orientation: landscape) and (max-height: 500px) {
     .sheet {
       --tile-w: 100%;
-      --tile-h: 92px;
+      --tile-h: 76px;
       padding: max(var(--space-2), env(safe-area-inset-top)) 0 max(var(--space-2), env(safe-area-inset-bottom));
       gap: var(--space-2);
       border-top: 0;
@@ -285,6 +375,12 @@
       min-height: 0;
       display: flex;
       margin: 0 max(var(--space-2), env(safe-area-inset-right)) 0 var(--space-2);
+    }
+
+    /* a short column: one line of name, so more tiles fit */
+    .well :global(.name) {
+      -webkit-line-clamp: 1;
+      line-clamp: 1;
     }
 
     .well {
@@ -326,13 +422,44 @@
       line-height: 1.15;
     }
 
+    .stack {
+      flex: 1;
+      min-height: 0;
+    }
+
+    .result {
+      --drum-size: 28px;
+      --verdict-size: 18px;
+      justify-content: flex-start;
+      padding: var(--space-2) max(var(--space-2), env(safe-area-inset-right)) 0 var(--space-2);
+    }
+
+    .result :global(.readout) {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+
     .actions {
+      flex-direction: column;
+      gap: var(--space-2);
       padding: 0 max(var(--space-2), env(safe-area-inset-right)) 0 var(--space-2);
     }
 
+    /* a 132 px column: let the labels wrap and let the fill show progress */
     .actions :global(.hold) {
       width: 100%;
       min-width: 0;
+      padding: var(--space-1) var(--space-2);
+      white-space: normal;
+      line-height: 1.1;
+    }
+
+    .actions :global(.hold svg) {
+      display: none;
+    }
+
+    .next {
+      font-size: var(--text-ui);
     }
   }
 
@@ -398,6 +525,28 @@
 
     .return {
       padding: 0;
+    }
+
+    .stack {
+      flex: 1;
+      min-height: 0;
+    }
+
+    .result {
+      --drum-size: 64px;
+      --verdict-size: 30px;
+      justify-content: flex-start;
+      padding: var(--space-6) var(--space-2) 0;
+    }
+
+    .result :global(.readout) {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: var(--space-3);
+    }
+
+    .actions {
+      flex-direction: column;
     }
 
     .actions :global(.hold) {

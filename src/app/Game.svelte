@@ -15,7 +15,7 @@
   let view = $state<View>('overview');
   let sheet = $state<HTMLElement>();
   let game: Game | undefined;
-  let placing = $state<PlacingState>({ ready: false, onPan: {}, panCount: 0, floor: [], full: false, carrying: undefined, putBack: false });
+  let placing = $state<PlacingState>({ ready: false, onPan: {}, panCount: 0, floor: [], full: false, carrying: undefined, putBack: false, phase: 'placing', result: undefined });
   let thumbs = $state(new Map<string, string>());
   let selection = $state<Selection | null>(null);
   let announcement = $state('');
@@ -111,7 +111,7 @@
         <p class="status error" role="alert">Something slipped. Reload the page to set the scale up again.</p>
       {:else if !placing.ready}
         <p class="status" role="status">Setting up the scale…</p>
-      {:else if placing.panCount === 0 && placing.carrying === undefined}
+      {:else if placing.phase === 'placing' && placing.panCount === 0 && placing.carrying === undefined}
         <p class="status">Drag something onto your pan.</p>
       {/if}
     </div>
@@ -141,6 +141,8 @@
     bind:element={sheet}
     onreset={() => game?.reset()}
     onreturnall={() => game?.returnAll()}
+    onlockin={() => game?.lockIn()}
+    onnext={() => game?.nextRound()}
   />
 
   <div class="visually-hidden" aria-live="polite">{announcement}</div>

@@ -6,11 +6,14 @@
     /** Accessible name, which should say it needs holding. */
     name: string;
     onconfirm: () => void;
+    /** Shown while it's held, if the label should change. */
+    holdingLabel?: string;
+    primary?: boolean;
     holdMs?: number;
     disabled?: boolean;
   }
 
-  let { label, name, onconfirm, holdMs = CONFIG.holdToConfirmMs, disabled = false }: Props = $props();
+  let { label, name, onconfirm, holdingLabel, primary = false, holdMs = CONFIG.holdToConfirmMs, disabled = false }: Props = $props();
 
   const RADIUS = 7;
   const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
@@ -84,6 +87,7 @@
   type="button"
   class="hold"
   class:holding
+  class:primary
   aria-label={name}
   aria-disabled={disabled}
   style:--progress={progress}
@@ -108,7 +112,7 @@
       stroke-dashoffset={CIRCUMFERENCE * (1 - progress)}
     />
   </svg>
-  <span>{holding ? 'Keep holding' : label}</span>
+  <span>{holding && holdingLabel ? holdingLabel : label}</span>
 </button>
 
 <style>
@@ -121,8 +125,6 @@
     justify-content: center;
     gap: var(--space-2);
     min-height: var(--target);
-    /* wide enough for 'Keep holding', so it doesn't jump */
-    min-width: 11em;
     padding: 0 var(--space-4);
     border: 1.5px solid var(--ink-soft);
     border-radius: var(--radius-control);
@@ -173,6 +175,28 @@
   .fill {
     stroke: var(--ink);
     stroke-linecap: round;
+  }
+
+  .primary {
+    border-color: var(--enamel);
+    background: var(--enamel);
+    color: var(--on-enamel);
+  }
+
+  .primary::before {
+    background: rgb(248 244 236 / 0.2);
+  }
+
+  .primary:hover:not([aria-disabled='true']) {
+    border-color: var(--enamel);
+  }
+
+  .primary .track {
+    stroke: rgb(248 244 236 / 0.3);
+  }
+
+  .primary .fill {
+    stroke: var(--on-enamel);
   }
 
   /* a round cap would leave a dot at zero */

@@ -1,6 +1,8 @@
 import * as THREE from 'three';
 import { CONFIG } from '../game/config';
+import { judge, spokenResult, type Result } from '../game/judge';
 import type { Item, Round } from '../game/practice';
+import { tipFor, WOBBLE, type BeamMotion } from '../physics/beam';
 import { PhysicsClient } from '../physics/client';
 import { POSE_STRIDE, RIG_ENTRIES, type Snapshot } from '../physics/protocol';
 import { locate, panRestY, RIG, type Quat, type Vec3 } from '../physics/rig';
@@ -25,6 +27,17 @@ const OVERVIEW_DIRECTION = new THREE.Vector3(0.35, 0.9, 4).normalize();
 const CLOSE_DIRECTION = new THREE.Vector3().setFromSphericalCoords(1, THREE.MathUtils.degToRad(52), 0.5);
 
 export type View = 'overview' | 'close';
+export type Phase = 'placing' | 'locking' | 'revealing' | 'result' | 'clearing';
+
+/** Lock-in choreography, in seconds; the second number is the reduced-motion version. */
+const FADE_SECONDS = 0.18;
+const LOCK_AT = [0.9, 0.2] as const;
+const PIN_SECONDS = [0.35, 0.1] as const;
+const RESULT_DELAY = [0.5, 0.3] as const;
+const LEVEL_SECONDS = [0.5, 0.15] as const;
+const PIN_TRAVEL = 0.14;
+
+const reducedMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 export interface FloorGroup {
   itemId: string;
@@ -40,6 +53,8 @@ export interface PlacingState {
   full: boolean;
   carrying: string | undefined;
   putBack: boolean;
+  phase: Phase;
+  result: Result | undefined;
 }
 
 /** Where to draw the rotate buttons: just under the selected object, in client pixels. */
@@ -103,6 +118,16 @@ export class Game implements GestureTarget {
   private view: View = 'overview';
   private readonly panAt = new THREE.Vector3();
   private readonly panMoved = new THREE.Vector3();
+  private promptId = 0;
+  private phase: Phase = 'placing';
+  private phaseTime = 0;
+  private calm = false;
+  private result: Result | undefined;
+  private motion: BeamMotion = { kind: 'locked' };
+  private fading: number[] = [];
+  private beamStarted = false;
+  private pinOut = 0;
+  private pinTarget = 0;
 
   constructor(
     host: HTMLElement,
@@ -147,6 +172,11 @@ export class Game implements GestureTarget {
               heading: this.ghost.heading,
               selected: this.selected,
             view: this.view,
+            phase: this.phase,
+            prompt: this.meshes.get(this.promptId)?.position.toArray(),
+            result: this.result,
+            beam: this.scale.beam.rotation.z,
+            pin: this.pinOut,
             target: controls.getTarget(new THREE.Vector3()).toArray(),
               selectedYaw: selected ? yawOf(selected.quaternion) : undefined,
               positions: [...this.bodies.keys()].map((id) => this.meshes.get(id)!.position.toArray()),
@@ -176,11 +206,14 @@ export class Game implements GestureTarget {
           },
           spawn: (n: number, itemId = this.round.inventory[0]!.id) => {
             for (let i = 0; i < n && this.bodies.size < CONFIG.maxDynamicBodies; i++) {
-              const a = i * 2.4;
-              const r = 0.12 + (i % 3) * 0.1;
-              this.addBody(itemId, { pos: [RIG.armLength + Math.cos(a) * r, panRestY() + 0.15 + i * 0.06, Math.sin(a) * r], quat: [0, 0, 0, 1] });
+              const k = this.bodies.size;
+              const a = k * 2.4;
+              const r = 0.12 + (k % 3) * 0.1;
+              this.addBody(itemId, { pos: [RIG.armLength + Math.cos(a) * r, panRestY() + 0.15 + k * 0.06, Math.sin(a) * r], quat: [0, 0, 0, 1] });
             }
           },
+          put: (itemId: string, x: number, y: number, z: number) => this.addBody(itemId, { pos: [x, y, z], quat: [0, 0, 0, 1] }),
+          lockIn: () => this.lockIn(),
         },
       });
     }
@@ -197,12 +230,18 @@ export class Game implements GestureTarget {
       // the tiles fall back to flat colour swatches
       .catch(() => {});
     await this.physics.init({ unitsPerMetre: this.round.unitsPerMetre });
+    this.addPrompt();
+    this.ready = true;
+  }
+
+  /** The prompt sits on the left pan; it's never one of the player's bodies. */
+  private addPrompt(): void {
     const prompt = this.kind(this.round.prompt.id);
     const pose: Pose = { pos: [-RIG.armLength, panRestY() + 0.25, 0], quat: [0, 0, 0, 1] };
     const id = this.nextId++;
+    this.promptId = id;
     this.meshes.add(id, prompt.geometry, prompt.material, pose);
     this.physics.add({ id, points: this.round.prompt.points, ...pose });
-    this.ready = true;
   }
 
   setView(view: View, animate = true): void {
@@ -218,6 +257,8 @@ export class Game implements GestureTarget {
   }
 
   toggleView(): void {
+    // the reveal always plays in the overview
+    if (this.phase === 'locking' || this.phase === 'revealing') return;
     this.setView(this.view === 'overview' ? 'close' : 'overview');
   }
 
@@ -290,7 +331,7 @@ export class Game implements GestureTarget {
   }
 
   pickUp(source: CarrySource): boolean {
-    if (!this.ready || this.ghost.active) return false;
+    if (!this.ready || this.phase !== 'placing' || this.ghost.active) return false;
     let itemId: string;
     let restore: Pose | undefined;
     if (source.kind === 'item') {
@@ -360,6 +401,7 @@ export class Game implements GestureTarget {
   }
 
   rotate(radians: number): void {
+    if (this.phase !== 'placing') return;
     if (this.ghost.active) {
       this.ghost.rotate(radians);
       return;
@@ -389,6 +431,7 @@ export class Game implements GestureTarget {
 
   /** Clears the player's pan. Fallen objects stay until they're returned. */
   reset(): void {
+    if (this.phase !== 'placing') return;
     const onPan = [...this.bodies].filter(([, b]) => b.onPan);
     if (onPan.length === 0) return;
     for (const [id] of onPan) this.removeBody(id);
@@ -396,14 +439,98 @@ export class Game implements GestureTarget {
   }
 
   returnAll(): void {
+    if (this.phase !== 'placing') return;
     const fallen = [...this.bodies].filter(([, b]) => !b.onPan);
     if (fallen.length === 0) return;
     for (const [id] of fallen) this.removeBody(id);
     this.onAnnounce(`Returned ${plural(fallen.length, 'thing', 'things')}.`);
   }
 
+  /**
+   * Judges what's on the pan, clears the floor, unlocks the beam and lets it show the result.
+   * The verdict is settled here: the beam is scripted from it, so nothing that slides during
+   * the reveal can change it.
+   */
+  lockIn(): void {
+    if (!this.ready || this.phase !== 'placing' || this.carrying) return;
+    this.calm = reducedMotion();
+    const bodies = [...this.bodies].map(([id, b]) => ({ id, kg: this.kind(b.itemId).item.kg, onPan: b.onPan }));
+    this.result = judge(bodies, this.round.prompt.kg);
+    const win = this.result.verdict === 'balanced';
+    this.motion = win
+      ? this.calm
+        ? { kind: 'locked' }
+        : WOBBLE
+      : this.calm
+        ? { kind: 'tip', direction: this.result.ratio > 1 ? 1 : -1, duration: 0.3 }
+        : tipFor(this.result.ratio);
+    this.fading = bodies.filter((b) => !b.onPan).map((b) => b.id);
+    this.selected = undefined;
+    this.beamStarted = false;
+    this.setPhase('locking');
+    this.setView('overview');
+  }
+
+  /**
+   * Clears both pans and eases the beam back to level before relocking it. Snapping it level
+   * in one step would yank the pans and fling anything on them.
+   */
+  nextRound(): void {
+    if (this.phase !== 'result') return;
+    this.calm = reducedMotion();
+    for (const id of [...this.bodies.keys()]) this.removeBody(id);
+    this.physics.remove(this.promptId);
+    this.meshes.remove(this.promptId);
+    const q = this.scale.beam.quaternion;
+    this.physics.beam({ kind: 'level', from: -2 * Math.atan2(q.z, q.w), duration: LEVEL_SECONDS[this.calm ? 1 : 0] });
+    this.result = undefined;
+    this.setPhase('clearing');
+  }
+
+  private setPhase(phase: Phase): void {
+    this.phase = phase;
+    this.phaseTime = 0;
+  }
+
+  private advanceReveal(dt: number): void {
+    this.phaseTime += dt;
+    const i = this.calm ? 1 : 0;
+    if (this.phase === 'locking') {
+      const shrink = Math.max(0.001, 1 - this.phaseTime / FADE_SECONDS);
+      for (const id of this.fading) this.meshes.get(id)?.scale.setScalar(shrink);
+      if (this.phaseTime >= FADE_SECONDS && this.fading.length) {
+        for (const id of this.fading) this.removeBody(id);
+        this.fading = [];
+      }
+      if (this.phaseTime >= LOCK_AT[i]) {
+        const masses: [number, number][] = [[this.promptId, this.round.prompt.kg]];
+        for (const [id, b] of this.bodies) masses.push([id, this.kind(b.itemId).item.kg]);
+        this.physics.lock(masses);
+        this.pinTarget = 1;
+        this.setPhase('revealing');
+      }
+    } else if (this.phase === 'revealing') {
+      if (!this.beamStarted && this.phaseTime >= PIN_SECONDS[i]) {
+        this.physics.beam(this.motion);
+        this.beamStarted = true;
+      }
+      if (this.phaseTime >= PIN_SECONDS[i] + RESULT_DELAY[i]) {
+        this.setPhase('result');
+        this.onAnnounce(spokenResult(this.result!));
+      }
+    } else if (this.phase === 'clearing' && this.phaseTime >= LEVEL_SECONDS[i] + 0.1) {
+      this.physics.unlock();
+      this.pinTarget = 0;
+      this.addPrompt();
+      this.setPhase('placing');
+    }
+    this.pinOut += (this.pinTarget - this.pinOut) * Math.min(1, dt * (this.calm ? 40 : 14));
+    this.scale.pin.position.z = 0.07 + this.pinOut * PIN_TRAVEL;
+  }
+
   private frame(dt: number): void {
     this.time += dt;
+    this.advanceReveal(dt);
     this.physics.tick(dt);
     const snap = this.physics.latest;
     if (snap) {
@@ -441,7 +568,7 @@ export class Game implements GestureTarget {
       } else if (this.time - body.since >= SETTLE_SECONDS) {
         body.onPan = onPan;
         body.since = undefined;
-        if (!onPan) this.onAnnounce(`Fell off: ${this.kind(body.itemId).item.name}. ${this.counts().floor} on the floor.`);
+        if (!onPan && this.phase === 'placing') this.onAnnounce(`Fell off: ${this.kind(body.itemId).item.name}. ${this.counts().floor} on the floor.`);
       }
     }
   }
@@ -495,6 +622,8 @@ export class Game implements GestureTarget {
       full: this.bodies.size >= CONFIG.maxDynamicBodies,
       carrying: this.carrying?.itemId,
       putBack: this.putBack,
+      phase: this.phase,
+      result: this.phase === 'result' ? this.result : undefined,
     };
     const key = JSON.stringify(state);
     if (key === this.lastState) return;
