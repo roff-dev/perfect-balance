@@ -1,4 +1,5 @@
 import { CONFIG } from './config';
+import { DEFAULT_FREEPLAY, normaliseSettings, type FreeplaySettings } from './freeplay';
 
 export interface RoundResult {
   ratio: number;
@@ -22,6 +23,7 @@ export interface Progress {
   daily: Record<number, Played>;
   archive: Record<number, Played>;
   streak: Streak;
+  settings: { freeplay: FreeplaySettings };
 }
 
 export type Mode = 'daily' | 'archive';
@@ -34,7 +36,7 @@ export interface Store {
 
 const KEY = 'pb:v1';
 
-export const emptyProgress = (): Progress => ({ schema: 1, daily: {}, archive: {}, streak: { current: 0, best: 0, lastN: 0 } });
+export const emptyProgress = (): Progress => ({ schema: 1, daily: {}, archive: {}, streak: { current: 0, best: 0, lastN: 0 }, settings: { freeplay: { ...DEFAULT_FREEPLAY } } });
 
 /** Reading `localStorage` itself throws when the browser blocks storage. */
 function browserStore(): Store | undefined {
@@ -94,7 +96,8 @@ export function normalise(raw: unknown): Progress | undefined {
   if (!isObject(raw) || raw.schema !== 1) return undefined;
   const s = isObject(raw.streak) ? raw.streak : {};
   const streak = isCount(s.current) && isCount(s.best) && isCount(s.lastN) ? { current: s.current, best: Math.max(s.best, s.current), lastN: s.lastN } : emptyProgress().streak;
-  return { schema: 1, daily: puzzles(raw.daily), archive: puzzles(raw.archive), streak };
+  const settings = isObject(raw.settings) ? raw.settings : {};
+  return { schema: 1, daily: puzzles(raw.daily), archive: puzzles(raw.archive), streak, settings: { freeplay: normaliseSettings(settings.freeplay) } };
 }
 
 /** Saves a puzzle's finished rounds; finishing a daily extends the streak. */
