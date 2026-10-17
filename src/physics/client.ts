@@ -69,6 +69,8 @@ export class PhysicsClient {
     return {
       post: (message) => {
         switch (message.type) {
+          case 'scale':
+            return world.setScale(message.options);
           case 'add':
             return world.add(message.body);
           case 'remove':
@@ -102,6 +104,11 @@ export class PhysicsClient {
 
   private post(message: ToWorker, transfer?: Transferable[]): void {
     this.backend?.post(message, transfer);
+  }
+
+  /** For a new round at a different real size, sent while the world is empty. */
+  scale(options: WorldOptions): void {
+    this.post({ type: 'scale', options });
   }
 
   /** Copies the points: the caller usually keeps its hull for the next copy of the item. */

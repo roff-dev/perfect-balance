@@ -25,7 +25,8 @@ export class PhysicsWorld {
   private readonly J: Jolt;
   private readonly jolt: InstanceType<Jolt['JoltInterface']>;
   private readonly bodyInterface: InstanceType<Jolt['BodyInterface']>;
-  private readonly collisionSteps: number;
+  private readonly sleepThreshold: number;
+  private collisionSteps = 1;
   private readonly beam: Body;
   private readonly pans: Record<PanSide, Body>;
   private readonly bodies = new Map<number, Body>();
@@ -59,18 +60,8 @@ export class PhysicsWorld {
 
     const system = this.jolt.GetPhysicsSystem();
     this.bodyInterface = system.GetBodyInterface();
-
-    // Real gravity in scaled units: big things fall slowly, small things snap.
-    const k = options.unitsPerMetre;
-    const g = 9.81 * k;
-    const gravity = new J.Vec3(0, -g, 0);
-    system.SetGravity(gravity);
-    J.destroy(gravity);
-    const physicsSettings = system.GetPhysicsSettings();
-    physicsSettings.mPointVelocitySleepThreshold *= k;
-    system.SetPhysicsSettings(physicsSettings);
-    // Above ~20 units/s² thin objects occasionally sink into the pan with a single collision step.
-    this.collisionSteps = g > 20 ? 2 : 1;
+    this.sleepThreshold = system.GetPhysicsSettings().mPointVelocitySleepThreshold;
+    this.setScale(options);
 
     this.tmpPos = new J.RVec3(0, 0, 0);
     this.tmpQuat = new J.Quat(0, 0, 0, 1);
@@ -90,6 +81,22 @@ export class PhysicsWorld {
     const beamShape = new J.BoxShape(new J.Vec3(...RIG.beamHalf), 0.01);
     this.beam = this.createBody(beamShape, RIG.pivot, [0, 0, 0, 1], J.EMotionType_Kinematic, LAYER_MOVING);
     this.pans = { left: this.createPan(-1), right: this.createPan(1) };
+  }
+
+  /** Each round has its own real size. The pan stays 1 unit across, so gravity and sleeping scale instead. */
+  setScale({ unitsPerMetre: k }: WorldOptions): void {
+    const J = this.J;
+    const system = this.jolt.GetPhysicsSystem();
+    // Real gravity in scaled units: big things fall slowly, small things snap.
+    const g = 9.81 * k;
+    const gravity = new J.Vec3(0, -g, 0);
+    system.SetGravity(gravity);
+    J.destroy(gravity);
+    const physicsSettings = system.GetPhysicsSettings();
+    physicsSettings.mPointVelocitySleepThreshold = this.sleepThreshold * k;
+    system.SetPhysicsSettings(physicsSettings);
+    // Above ~20 units/s² thin objects occasionally sink into the pan with a single collision step.
+    this.collisionSteps = g > 20 ? 2 : 1;
   }
 
   private createBody(

@@ -19,6 +19,7 @@ export type LockMasses = [id: number, kg: number][];
 
 export type ToWorker =
   | { type: 'init'; options: WorldOptions }
+  | { type: 'scale'; options: WorldOptions }
   | { type: 'add'; body: BodySpec }
   | { type: 'remove'; id: number }
   | { type: 'clear' }

@@ -11,6 +11,9 @@ function send(message: FromWorker, transfer: Transferable[] = []): void {
 
 function handle(message: ToWorker, w: PhysicsWorld): void {
   switch (message.type) {
+    case 'scale':
+      w.setScale(message.options);
+      break;
     case 'add':
       w.add(message.body);
       break;
