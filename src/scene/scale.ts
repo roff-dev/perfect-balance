@@ -2,13 +2,17 @@ import * as THREE from 'three';
 import { padTopY, PAN_FLOOR_TOP, panRestY, RIG } from '../physics/rig';
 import { POSE_STRIDE } from '../physics/protocol';
 
-const brass = new THREE.MeshStandardMaterial({ color: '#b8892f', metalness: 1, roughness: 0.32 });
-const brassDull = new THREE.MeshStandardMaterial({ color: '#a27a2c', metalness: 1, roughness: 0.5 });
-const ebony = new THREE.MeshStandardMaterial({ color: '#2a211b', metalness: 0, roughness: 0.42 });
+// Low-poly to match the objects: few facets, flat shading, matte colour, no reflections.
+const matte = (color: string) => new THREE.MeshStandardMaterial({ color, roughness: 0.85, metalness: 0, flatShading: true });
+const brass = matte('#c4963c');
+const brassShade = matte('#9c742c');
+const wood = matte('#4a3627');
+const woodDark = matte('#33261d');
 
 const CHAINS_PER_PAN = 3;
-const CHAIN_RADIUS = 0.006;
+const CHAIN_HALF_WIDTH = 0.009;
 const RIM_TOP = RIG.rimHalfHeight * 2;
+const PAN_SIDES = 12;
 
 function shadowed<T extends THREE.Mesh>(mesh: T): T {
   mesh.castShadow = true;
@@ -16,37 +20,44 @@ function shadowed<T extends THREE.Mesh>(mesh: T): T {
   return mesh;
 }
 
-/** A shallow spun-brass dish whose inner floor sits exactly on the collision floor. */
-function panGeometry(): THREE.LatheGeometry {
-  const R = RIG.panRadius;
-  const bottom = PAN_FLOOR_TOP - 2 * RIG.panFloorHalf;
-  const profile = [
-    [0, bottom],
-    [R * 0.82, bottom],
-    [R + 0.004, bottom + 0.035],
-    [R + 0.016, RIM_TOP],
-    [R + 0.02, RIM_TOP + 0.006],
-    [R - 0.004, RIM_TOP + 0.004],
-    [R - 0.016, PAN_FLOOR_TOP + 0.02],
-    [R - 0.06, PAN_FLOOR_TOP],
-    [0, PAN_FLOOR_TOP],
-  ].map(([x, y]) => new THREE.Vector2(x, y));
-  return new THREE.LatheGeometry(profile, 64);
+/** An n-sided prism whose flat faces, not its corners, sit at `apothem`, so it never looks smaller than its collider. */
+function facetedCylinder(apothemTop: number, apothemBottom: number, height: number, sides: number): THREE.CylinderGeometry {
+  const k = 1 / Math.cos(Math.PI / sides);
+  return new THREE.CylinderGeometry(apothemTop * k, apothemBottom * k, height, sides);
 }
 
-/** Thick at the fulcrum, tapering to the tips, like a cast balance beam. */
+/** A faceted dish whose inner floor sits exactly on the collision floor. */
+function panGeometry(): THREE.LatheGeometry {
+  const R = RIG.panRadius;
+  const k = 1 / Math.cos(Math.PI / PAN_SIDES);
+  const bottom = PAN_FLOOR_TOP - 2 * RIG.panFloorHalf;
+  const profile: [number, number][] = [
+    [0, bottom],
+    [R * 0.8, bottom],
+    [R + 0.03, RIM_TOP + 0.012],
+    [R - 0.012, RIM_TOP + 0.012],
+    [R - 0.06, PAN_FLOOR_TOP],
+    [0, PAN_FLOOR_TOP],
+  ];
+  return new THREE.LatheGeometry(
+    profile.map(([x, y]) => new THREE.Vector2(x * k, y)),
+    PAN_SIDES,
+  );
+}
+
+/** Deepest at the fulcrum and tapering to the tips, in straight facets. */
 function beamGeometry(): THREE.ExtrudeGeometry {
   const L = RIG.beamHalf[0];
   const shape = new THREE.Shape();
-  shape.moveTo(-L, -0.016);
-  shape.quadraticCurveTo(-L * 0.4, -0.03, 0, -0.05);
-  shape.quadraticCurveTo(L * 0.4, -0.03, L, -0.016);
-  shape.lineTo(L, 0.016);
-  shape.quadraticCurveTo(L * 0.4, 0.024, 0, 0.04);
-  shape.quadraticCurveTo(-L * 0.4, 0.024, -L, 0.016);
+  shape.moveTo(-L, -0.022);
+  shape.lineTo(0, -0.06);
+  shape.lineTo(L, -0.022);
+  shape.lineTo(L, 0.026);
+  shape.lineTo(0, 0.05);
+  shape.lineTo(-L, 0.026);
   shape.closePath();
-  const depth = 0.036;
-  const g = new THREE.ExtrudeGeometry(shape, { depth, bevelEnabled: true, bevelSize: 0.004, bevelThickness: 0.004, bevelSegments: 2, curveSegments: 16 });
+  const depth = 0.06;
+  const g = new THREE.ExtrudeGeometry(shape, { depth, bevelEnabled: false });
   g.translate(0, 0, -depth / 2);
   return g;
 }
@@ -54,40 +65,39 @@ function beamGeometry(): THREE.ExtrudeGeometry {
 function staticParts(): THREE.Group {
   const g = new THREE.Group();
   const plinthH = RIG.plinthHalf[1] * 2;
-  const plinth = shadowed(new THREE.Mesh(new THREE.BoxGeometry(RIG.plinthHalf[0] * 2, plinthH, RIG.plinthHalf[2] * 2), ebony));
-  plinth.position.y = plinthH / 2;
-  const foot = shadowed(new THREE.Mesh(new THREE.BoxGeometry(RIG.plinthHalf[0] * 2 + 0.04, 0.012, RIG.plinthHalf[2] * 2 + 0.04), brassDull));
-  foot.position.y = 0.006;
+  const plinth = shadowed(new THREE.Mesh(new THREE.BoxGeometry(RIG.plinthHalf[0] * 2, plinthH * 0.6, RIG.plinthHalf[2] * 2), wood));
+  plinth.position.y = plinthH * 0.7;
+  const foot = shadowed(new THREE.Mesh(new THREE.BoxGeometry(RIG.plinthHalf[0] * 2 + 0.06, plinthH * 0.4, RIG.plinthHalf[2] * 2 + 0.06), woodDark));
+  foot.position.y = plinthH * 0.2;
   g.add(plinth, foot);
 
   const padTop = padTopY();
   for (const x of [-RIG.armLength, RIG.armLength]) {
-    const h = padTop - plinthH - 0.02;
-    const post = shadowed(new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.08, h, 32), ebony));
+    const h = padTop - plinthH - 0.04;
+    const post = shadowed(new THREE.Mesh(facetedCylinder(0.06, 0.1, h, 6), wood));
     post.position.set(x, plinthH + h / 2, 0);
-    const cap = shadowed(new THREE.Mesh(new THREE.CylinderGeometry(RIG.padHalfWidth, RIG.padHalfWidth * 0.9, 0.02, 48), brass));
-    cap.position.set(x, padTop - 0.01, 0);
+    const cap = shadowed(new THREE.Mesh(facetedCylinder(RIG.padHalfWidth, RIG.padHalfWidth * 0.8, 0.04, 8), brass));
+    cap.position.set(x, padTop - 0.02, 0);
     g.add(post, cap);
   }
 
   const columnTop = RIG.pivot[1] - 0.06;
-  const column = shadowed(new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.045, columnTop - plinthH, 32), brass));
+  const column = shadowed(new THREE.Mesh(facetedCylinder(0.04, 0.055, columnTop - plinthH, 6), brass));
   column.position.y = plinthH + (columnTop - plinthH) / 2;
-  const collar = shadowed(new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.09, 0.05, 32), brass));
-  collar.position.y = plinthH + 0.025;
-  // the fork that carries the knife edge
-  const fork = shadowed(new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.14, 0.11), brass));
+  const collar = shadowed(new THREE.Mesh(facetedCylinder(0.1, 0.13, 0.08, 6), brassShade));
+  collar.position.y = plinthH + 0.04;
+  const fork = shadowed(new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.16, 0.13), brass));
   fork.position.set(0, RIG.pivot[1] - 0.02, 0);
-  const finial = shadowed(new THREE.Mesh(new THREE.SphereGeometry(0.035, 24, 16), brass));
-  finial.position.y = RIG.pivot[1] + 0.09;
+  const finial = shadowed(new THREE.Mesh(new THREE.IcosahedronGeometry(0.05, 0), brass));
+  finial.position.y = RIG.pivot[1] + 0.11;
 
   // index plate the pointer reads against
   const plateY = RIG.pivot[1] - 0.42;
-  const plate = shadowed(new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.16, 0.01, 48, 1, false, Math.PI * 0.75, Math.PI * 0.5), ebony));
+  const plate = shadowed(new THREE.Mesh(new THREE.CylinderGeometry(0.17, 0.17, 0.02, 5, 1, false, Math.PI * 0.75, Math.PI * 0.5), woodDark));
   plate.rotation.x = Math.PI / 2;
-  plate.position.set(0, plateY + 0.1, 0.05);
-  const tick = new THREE.Mesh(new THREE.BoxGeometry(0.004, 0.03, 0.004), brass);
-  tick.position.set(0, plateY + 0.235, 0.058);
+  plate.position.set(0, plateY + 0.1, 0.06);
+  const tick = new THREE.Mesh(new THREE.BoxGeometry(0.012, 0.04, 0.012), brass);
+  tick.position.set(0, plateY + 0.245, 0.072);
   g.add(column, collar, fork, finial, plate, tick);
   return g;
 }
@@ -111,24 +121,24 @@ export class ScaleModel {
     this.group.add(staticParts());
 
     const beamBody = shadowed(new THREE.Mesh(beamGeometry(), brass));
-    const pointer = shadowed(new THREE.Mesh(new THREE.ConeGeometry(0.012, 0.36, 12), brass));
+    const pointer = shadowed(new THREE.Mesh(new THREE.ConeGeometry(0.022, 0.36, 4), brass));
     pointer.rotation.z = Math.PI;
-    pointer.position.set(0, -0.22, 0.05);
-    const hub = shadowed(new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.12, 24), brassDull));
+    pointer.position.set(0, -0.22, 0.06);
+    const hub = shadowed(new THREE.Mesh(facetedCylinder(0.04, 0.04, 0.16, 6), brassShade));
     hub.rotation.x = Math.PI / 2;
     this.beam.add(beamBody, pointer, hub);
     for (const x of [-RIG.armLength, RIG.armLength]) {
-      const hook = shadowed(new THREE.Mesh(new THREE.TorusGeometry(0.018, 0.005, 8, 20), brass));
-      hook.position.set(x, -0.02, 0);
+      const hook = shadowed(new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.07, 0.075), brassShade));
+      hook.position.set(x, 0, 0);
       this.beam.add(hook);
     }
     this.group.add(this.beam);
 
-    this.pin = shadowed(new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, 0.16, 12), brassDull));
+    this.pin = shadowed(new THREE.Mesh(facetedCylinder(0.012, 0.012, 0.18, 6), brassShade));
     this.pin.rotation.x = Math.PI / 2;
-    this.pin.position.set(0, RIG.pivot[1] - 0.22, 0.06);
-    const pinHead = new THREE.Mesh(new THREE.TorusGeometry(0.016, 0.004, 8, 20), brassDull);
-    pinHead.position.y = 0.08;
+    this.pin.position.set(0, RIG.pivot[1] - 0.22, 0.07);
+    const pinHead = new THREE.Mesh(new THREE.TorusGeometry(0.024, 0.008, 4, 6), brassShade);
+    pinHead.position.y = 0.09;
     pinHead.rotation.x = Math.PI / 2;
     this.pin.add(pinHead);
     this.group.add(this.pin);
@@ -140,9 +150,9 @@ export class ScaleModel {
       this.group.add(pan);
     });
 
-    const link = new THREE.CylinderGeometry(CHAIN_RADIUS, CHAIN_RADIUS, 1, 6, 1, true);
+    const link = new THREE.BoxGeometry(CHAIN_HALF_WIDTH * 2, 1, CHAIN_HALF_WIDTH * 2);
     link.translate(0, 0.5, 0);
-    this.chains = new THREE.InstancedMesh(link, brassDull, CHAINS_PER_PAN * 2);
+    this.chains = new THREE.InstancedMesh(link, brassShade, CHAINS_PER_PAN * 2);
     this.chains.castShadow = true;
     this.chains.frustumCulled = false;
     this.group.add(this.chains);

@@ -193,7 +193,7 @@ export class Sandbox {
       this.bodies.sync(snap);
     }
     this.pinOut += (this.pinTarget - this.pinOut) * Math.min(1, dt * 12);
-    this.scale.pin.position.z = 0.06 + this.pinOut * 0.14;
+    this.scale.pin.position.z = 0.07 + this.pinOut * 0.14;
 
     this.phaseTime += dt;
     if (this.phase === 'placing') {
