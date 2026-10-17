@@ -1,5 +1,5 @@
 <script lang="ts">
-  import Sandbox from './app/Sandbox.svelte';
+  import Game from './app/Game.svelte';
 </script>
 
-<Sandbox />
+<Game />
