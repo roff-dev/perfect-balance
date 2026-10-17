@@ -4,8 +4,6 @@ import { verdictFor } from './judge';
 import { hashSeed, int, mulberry32, pick, shuffle, type Rng } from './random';
 import { ROUNDED } from './shapes';
 
-/** Bumped only alongside a new catalogue version range, so past puzzles keep their rounds. */
-export const GENERATOR_VERSION = 1;
 /**
  * How much of the pan the solution may fill, fixed by the packing test. By volume: its bounding
  * boxes against a cylinder as tall as the pan is wide, so piles stay well clear of the chains.
@@ -14,7 +12,8 @@ export const GENERATOR_VERSION = 1;
 export const PACKING = { volume: 0.12, unsteady: 0.3 };
 /** Height over narrowest width past which a thing topples when stacked. */
 const TOPPLES = 2.5;
-const ATTEMPTS = 50;
+/** A few prompts only make a fair round from ~2% of sub-seeds, and a failed try is cheap. Daily prompt history relies on this. */
+const ATTEMPTS = 400;
 /** Smaller pans need gravity past what scaled physics was proven stable at (65 units/s²). */
 const MIN_PAN_METRES = 0.2;
 /** Prompts are grouped into ×3 weight bands, and a game takes each of its prompts from a different one. */
@@ -38,8 +37,8 @@ export interface GameOptions {
   catalogue?: readonly CatalogueEntry[];
   /** Only entries added in this catalogue version or earlier take part. */
   version?: number;
-  /** Prompts used too recently to come up again. */
-  exclude?: ReadonlySet<string>;
+  /** How many puzzles ago each prompt last came up. */
+  recent?: ReadonlyMap<string, number>;
 }
 
 /** Diagonal of what the object covers as it stands. */
@@ -50,18 +49,11 @@ const thinnest = ({ dimensionsM: { l, w, h } }: CatalogueEntry) => Math.min(l, w
 export const weightBand = (kg: number) => Math.floor(Math.log(kg) / BAND);
 
 /** Five rounds, each prompt from a different weight band, in a random order. */
-export function generateGame(seed: number, { catalogue = CATALOGUE, version = Infinity, exclude = new Set() }: GameOptions = {}): Plan[] {
+export function generateGame(seed: number, { catalogue = CATALOGUE, version = Infinity, recent = new Map() }: GameOptions = {}): Plan[] {
   const entries = catalogue.filter((e) => e.addedIn <= version);
-  const rng = mulberry32(seed);
-  const bands = new Map<number, CatalogueEntry[]>();
-  for (const e of entries) {
-    if (!e.canBePrompt || exclude.has(e.id)) continue;
-    const band = weightBand(e.weightKg);
-    bands.set(band, [...(bands.get(band) ?? []), e]);
-  }
   const plans: Plan[] = [];
-  for (const band of shuffle(rng, [...bands.keys()].sort((a, b) => a - b))) {
-    for (const prompt of shuffle(rng, bands.get(band)!)) {
+  for (const prompts of promptOrder(mulberry32(seed), entries, recent)) {
+    for (const prompt of prompts) {
       const plan = generateRound(prompt, entries, hashSeed(seed, prompt.id));
       if (plan) {
         plans.push(plan);
@@ -71,6 +63,27 @@ export function generateGame(seed: number, { catalogue = CATALOGUE, version = In
     if (plans.length === CONFIG.roundsPerGame) return plans;
   }
   throw new Error(`Only ${plans.length} rounds could be built from seed ${seed}.`);
+}
+
+/**
+ * The weight bands in a random order, each with its prompts best first. Prompts that came up
+ * within the cooldown go to the back, the longest ago first, so a small catalogue still works
+ * and repeats stay as far apart as it allows.
+ */
+export function promptOrder(rng: Rng, entries: readonly CatalogueEntry[], recent: ReadonlyMap<string, number>): CatalogueEntry[][] {
+  const bands = new Map<number, CatalogueEntry[]>();
+  for (const e of entries) {
+    if (!e.canBePrompt) continue;
+    const band = weightBand(e.weightKg);
+    bands.set(band, [...(bands.get(band) ?? []), e]);
+  }
+  const age = (e: CatalogueEntry) => recent.get(e.id) ?? Infinity;
+  return shuffle(rng, [...bands.keys()].sort((a, b) => a - b)).map((band) => {
+    const prompts = shuffle(rng, bands.get(band)!);
+    const fresh = prompts.filter((e) => age(e) > CONFIG.promptCooldownPuzzles);
+    const stale = prompts.filter((e) => age(e) <= CONFIG.promptCooldownPuzzles).sort((a, b) => age(b) - age(a));
+    return [...fresh, ...stale];
+  });
 }
 
 /** Tries a few sub-seeds; a prompt that can't be built into a fair round is skipped. */
