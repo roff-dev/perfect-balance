@@ -1,0 +1,39 @@
+:root {
+  --paper: #efe8dc;
+  --paper-raised: #f8f4ec;
+  --paper-sunk: #e4daca;
+  --ink: #1f1b17;
+  --ink-soft: #5c5249;
+  /* decorative only: 2.59:1 on paper, never use for text */
+  --brass: #b8892f;
+  --brass-ink: #7a5617;
+  --enamel: #24365c;
+  --on-enamel: #f8f4ec;
+  --heavy: #a3392a;
+  --light: #2c5c8c;
+  --balanced: #3b6636;
+
+  --font-display: 'Fraunces Variable', 'Iowan Old Style', Georgia, serif;
+  --font-ui: 'Instrument Sans Variable', 'Helvetica Neue', Arial, sans-serif;
+  --display-soft: 'SOFT' 50;
+
+  --text-ui: clamp(15px, 0.9rem + 0.15vw, 17px);
+  --text-small: 13px;
+  --text-display: clamp(56px, 7vw + 1rem, 96px);
+  --text-title: clamp(28px, 2.4vw + 1rem, 40px);
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 40px;
+  --space-7: 64px;
+
+  --radius-control: 999px;
+  --radius-tile: 14px;
+  --target: 44px;
+
+  --focus-ring: 2px solid var(--enamel);
+  --focus-offset: 2px;
+}
