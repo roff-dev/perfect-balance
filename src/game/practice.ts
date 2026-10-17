@@ -4,6 +4,8 @@ export interface Item {
   id: string;
   name: string;
   color: string;
+  /** Real weight, which only counts once the scale is unlocked. */
+  kg: number;
   /** Hull points in physics units. */
   points: Float32Array;
 }
@@ -18,10 +20,11 @@ export interface Round {
 const PAN_METRES = 0.6;
 const k = 1 / PAN_METRES;
 
-const item = (id: string, name: string, color: string, metres: Float32Array): Item => ({
+const item = (id: string, name: string, color: string, kg: number, metres: Float32Array): Item => ({
   id,
   name,
   color,
+  kg,
   points: scaled(metres, k),
 });
 
@@ -29,20 +32,20 @@ const item = (id: string, name: string, color: string, metres: Float32Array): It
 export function practiceRound(): Round {
   return {
     unitsPerMetre: k,
-    prompt: item('potatoes', 'Sack of potatoes', '#a88a5c', ellipsoid(0.21, 0.11, 0.15, 3, 8)),
+    prompt: item('potatoes', 'Sack of potatoes', '#a88a5c', 12.5, ellipsoid(0.21, 0.11, 0.15, 3, 8)),
     inventory: [
-      item('brick', 'House brick', '#b5654a', box(0.215, 0.065, 0.1025)),
-      item('beans', 'Tin of baked beans', '#6f8fa3', cylinder(0.037, 0.11, 12)),
-      item('paperback', 'Paperback novel', '#d9c9a3', box(0.178, 0.025, 0.111)),
-      item('sugar', 'Bag of sugar', '#d8ccb2', box(0.12, 0.17, 0.075)),
-      item('cricket-ball', 'Cricket ball', '#9e3b2e', ellipsoid(0.036, 0.036, 0.036)),
-      item('mug', 'Coffee mug', '#5d7d8c', lathe([[0.04, -0.0475], [0.045, 0.0475]], 10)),
-      item('honey', 'Jar of honey', '#d39a3a', lathe([[0.04, -0.05], [0.04, 0.035], [0.034, 0.05]], 8)),
-      item('watermelon', 'Watermelon', '#5f7f4a', ellipsoid(0.13, 0.1, 0.1, 4, 10)),
-      item('wine', 'Bottle of wine', '#3f5a43', lathe([[0.038, -0.15], [0.038, 0.05], [0.015, 0.11], [0.015, 0.15]], 10)),
-      item('egg', "Hen's egg", '#e6d2b0', ellipsoid(0.0285, 0.022, 0.022)),
-      item('trainers', 'Boxed pair of trainers', '#b9a385', box(0.33, 0.12, 0.2)),
-      item('pineapple', 'Pineapple', '#c49a3c', lathe([[0.055, -0.1], [0.065, -0.03], [0.055, 0.06], [0.02, 0.1]], 8)),
+      item('brick', 'House brick', '#b5654a', 2.3, box(0.215, 0.065, 0.1025)),
+      item('beans', 'Tin of baked beans', '#6f8fa3', 0.415, cylinder(0.037, 0.11, 12)),
+      item('paperback', 'Paperback novel', '#d9c9a3', 0.25, box(0.178, 0.025, 0.111)),
+      item('sugar', 'Bag of sugar', '#d8ccb2', 1, box(0.12, 0.17, 0.075)),
+      item('cricket-ball', 'Cricket ball', '#9e3b2e', 0.16, ellipsoid(0.036, 0.036, 0.036)),
+      item('mug', 'Coffee mug', '#5d7d8c', 0.35, lathe([[0.04, -0.0475], [0.045, 0.0475]], 10)),
+      item('honey', 'Jar of honey', '#d39a3a', 0.45, lathe([[0.04, -0.05], [0.04, 0.035], [0.034, 0.05]], 8)),
+      item('watermelon', 'Watermelon', '#5f7f4a', 5, ellipsoid(0.13, 0.1, 0.1, 4, 10)),
+      item('wine', 'Bottle of wine', '#3f5a43', 1.3, lathe([[0.038, -0.15], [0.038, 0.05], [0.015, 0.11], [0.015, 0.15]], 10)),
+      item('egg', "Hen's egg", '#e6d2b0', 0.058, ellipsoid(0.0285, 0.022, 0.022)),
+      item('trainers', 'Boxed pair of trainers', '#b9a385', 1.4, box(0.33, 0.12, 0.2)),
+      item('pineapple', 'Pineapple', '#c49a3c', 1.6, lathe([[0.055, -0.1], [0.065, -0.03], [0.055, 0.06], [0.02, 0.1]], 8)),
     ],
   };
 }
