@@ -9,7 +9,9 @@ const DEG = Math.PI / 180;
 export type BeamMotion =
   | { kind: 'locked' }
   | { kind: 'wobble'; amplitude: number; tau: number; frequency: number }
-  | { kind: 'tip'; direction: 1 | -1; duration: number };
+  | { kind: 'tip'; direction: 1 | -1; duration: number }
+  /** Eases back to level from wherever the reveal left it. */
+  | { kind: 'level'; from: number; duration: number };
 
 export const WOBBLE: BeamMotion = { kind: 'wobble', amplitude: 1.6 * DEG, tau: 0.55, frequency: 1.1 };
 
@@ -29,6 +31,10 @@ export function beamAngle(motion: BeamMotion, t: number): number {
       // accelerates like a falling arm, then stops dead on the rest pad
       const k = Math.min(1, t / motion.duration);
       return motion.direction * RIG.stopAngle * k * k;
+    }
+    case 'level': {
+      const k = Math.min(1, t / motion.duration);
+      return motion.from * (1 - k * k * (3 - 2 * k));
     }
   }
 }
