@@ -8,7 +8,7 @@ import { BodyMeshes, hullGeometry } from '../scene/bodies';
 import { Ghost, type Pose } from '../scene/ghost';
 import { Gestures, type Aim, type CarrySource, type GestureTarget } from '../scene/gestures';
 import { ScaleModel } from '../scene/scale';
-import { Stage } from '../scene/stage';
+import { Stage, type Insets } from '../scene/stage';
 import { renderThumbnails } from '../scene/thumbnails';
 
 /** On touch the object is aimed this far above the finger, so the finger doesn't hide it. */
@@ -17,6 +17,14 @@ const TOUCH_LIFT = 48;
 const SETTLE_SECONDS = 0.3;
 const UP = new THREE.Vector3(0, 1, 0);
 const INK = '#1f1b17';
+/** Close-up distance limits, in pan diameters. */
+const CLOSE_MIN = 0.6;
+const CLOSE_MAX = 3;
+const OVERVIEW_DIRECTION = new THREE.Vector3(0.35, 0.9, 4).normalize();
+/** From the front right and above, looking down into the pan. */
+const CLOSE_DIRECTION = new THREE.Vector3().setFromSphericalCoords(1, THREE.MathUtils.degToRad(52), 0.5);
+
+export type View = 'overview' | 'close';
 
 export interface FloorGroup {
   itemId: string;
@@ -61,6 +69,7 @@ export class Game implements GestureTarget {
   onSelection: (selection: Selection | null) => void = () => {};
   onThumbnails: (urls: Map<string, string>) => void = () => {};
   onError: (message: string) => void = () => {};
+  onView: (view: View) => void = () => {};
 
   readonly canvas: HTMLCanvasElement;
   private readonly stage: Stage;
@@ -91,6 +100,9 @@ export class Game implements GestureTarget {
   private lastSelection = '';
   private lastState = '';
   private disposed = false;
+  private view: View = 'overview';
+  private readonly panAt = new THREE.Vector3();
+  private readonly panMoved = new THREE.Vector3();
 
   constructor(
     host: HTMLElement,
@@ -102,7 +114,8 @@ export class Game implements GestureTarget {
     this.selectionRing.visible = false;
     this.selectionRing.renderOrder = 1;
     this.stage.scene.add(this.scale.group, this.meshes.group, this.ghost.group, this.selectionRing);
-    this.stage.setFraming([this.scale.group]);
+    this.scale.pans[1].getWorldPosition(this.panAt);
+    this.setView('overview', false);
     this.canvas = this.stage.renderer.domElement;
     this.physics.onError = (m) => this.onError(m);
 
@@ -133,6 +146,8 @@ export class Game implements GestureTarget {
               distance: controls.distance,
               heading: this.ghost.heading,
               selected: this.selected,
+            view: this.view,
+            target: controls.getTarget(new THREE.Vector3()).toArray(),
               selectedYaw: selected ? yawOf(selected.quaternion) : undefined,
               positions: [...this.bodies.keys()].map((id) => this.meshes.get(id)!.position.toArray()),
             };
@@ -141,6 +156,23 @@ export class Game implements GestureTarget {
             const r = this.canvas.getBoundingClientRect();
             const v = new THREE.Vector3(x, y, z).project(this.stage.camera);
             return [r.left + ((v.x + 1) / 2) * r.width, r.top + ((1 - v.y) / 2) * r.height];
+          },
+          /** Client-pixel rectangle of everything the current view should show. */
+          framed: () => {
+            const box = this.view === 'overview' ? this.overviewBox() : this.closeBox();
+            const r = this.canvas.getBoundingClientRect();
+            const rect = [Infinity, Infinity, -Infinity, -Infinity];
+            this.stage.camera.updateMatrixWorld();
+            for (let i = 0; i < 8; i++) {
+              const v = new THREE.Vector3(i & 1 ? box.max.x : box.min.x, i & 2 ? box.max.y : box.min.y, i & 4 ? box.max.z : box.min.z).project(this.stage.camera);
+              const x = r.left + ((v.x + 1) / 2) * r.width;
+              const y = r.top + ((1 - v.y) / 2) * r.height;
+              rect[0] = Math.min(rect[0]!, x);
+              rect[1] = Math.min(rect[1]!, y);
+              rect[2] = Math.max(rect[2]!, x);
+              rect[3] = Math.max(rect[3]!, y);
+            }
+            return rect;
           },
           spawn: (n: number, itemId = this.round.inventory[0]!.id) => {
             for (let i = 0; i < n && this.bodies.size < CONFIG.maxDynamicBodies; i++) {
@@ -171,6 +203,49 @@ export class Game implements GestureTarget {
     this.meshes.add(id, prompt.geometry, prompt.material, pose);
     this.physics.add({ id, points: this.round.prompt.points, ...pose });
     this.ready = true;
+  }
+
+  setView(view: View, animate = true): void {
+    this.view = view;
+    if (view === 'overview') {
+      this.stage.setDistanceRange(CLOSE_MIN, 0);
+      this.stage.frame(this.overviewBox(), OVERVIEW_DIRECTION, animate);
+    } else {
+      this.stage.setDistanceRange(CLOSE_MIN, CLOSE_MAX);
+      this.stage.frame(this.closeBox(), CLOSE_DIRECTION, animate);
+    }
+    this.onView(view);
+  }
+
+  toggleView(): void {
+    this.setView(this.view === 'overview' ? 'close' : 'overview');
+  }
+
+  /** Space taken by the overlays at each edge of the scene, so framing keeps clear of them. */
+  setInsets(insets: Insets): void {
+    this.stage.setInsets(insets);
+  }
+
+  /** The scale, the prompt and the player's stack; fallen objects don't pull the camera back. */
+  private overviewBox(): THREE.Box3 {
+    const box = new THREE.Box3().setFromObject(this.scale.group);
+    for (const mesh of this.meshes.group.children) {
+      const body = this.bodies.get(mesh.userData.bodyId as number);
+      if (!body || body.onPan) box.expandByObject(mesh);
+    }
+    return box;
+  }
+
+  /** The player's pan with a little headroom, plus whatever is stacked on it. */
+  private closeBox(): THREE.Box3 {
+    const { x, y, z } = this.scale.pans[1].position;
+    const r = RIG.panRadius + 0.06;
+    const box = new THREE.Box3(new THREE.Vector3(x - r, y - 0.08, z - r), new THREE.Vector3(x + r, y + 0.35, z + r));
+    for (const [id, body] of this.bodies) {
+      const mesh = this.meshes.get(id);
+      if (mesh && body.onPan) box.expandByObject(mesh);
+    }
+    return box;
   }
 
   private kind(itemId: string): Kind {
@@ -335,10 +410,19 @@ export class Game implements GestureTarget {
       this.scale.sync(snap.poses);
       this.meshes.sync(snap);
       this.classify(snap);
+      if (this.view === 'close') this.followPan();
     }
     this.ghost.update(dt);
     this.emitSelection();
     this.emitState();
+  }
+
+  private followPan(): void {
+    const pan = this.scale.pans[1].position;
+    this.panMoved.subVectors(pan, this.panAt);
+    if (this.panMoved.lengthSq() < 1e-8) return;
+    this.panAt.copy(pan);
+    this.stage.translate(this.panMoved);
   }
 
   private classify({ ids, poses }: Snapshot): void {

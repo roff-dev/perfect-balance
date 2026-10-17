@@ -5,6 +5,18 @@ import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 CameraControls.install({ THREE });
 
 const PAPER = new THREE.Color('#efe8dc');
+const UP = new THREE.Vector3(0, 1, 0);
+/** A little above and to the right of straight on. */
+const DEFAULT_DIRECTION = new THREE.Vector3(0.35, 0.9, 4).normalize();
+
+const reducedMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+export interface Insets {
+  top: number;
+  right: number;
+  bottom: number;
+  left: number;
+}
 
 export interface StageOptions {
   shadowMapSize: number;
@@ -21,7 +33,18 @@ export class Stage {
   readonly floor: THREE.Mesh;
   private readonly observer: ResizeObserver;
   private readonly timer = new THREE.Timer();
-  private readonly framing = new THREE.Sphere(new THREE.Vector3(0, 1.15, 0), 1.8);
+  private readonly box = new THREE.Box3(new THREE.Vector3(-1.2, 0, -0.4), new THREE.Vector3(1.2, 2.2, 0.4));
+  private insets: Insets = { top: 0, right: 0, bottom: 0, left: 0 };
+  private width = 0;
+  private height = 0;
+  private maxDistance = 60;
+  private readonly back = new THREE.Vector3();
+  private readonly right = new THREE.Vector3();
+  private readonly up = new THREE.Vector3();
+  private readonly centre = new THREE.Vector3();
+  private readonly corner = new THREE.Vector3();
+  private readonly target = new THREE.Vector3();
+  private readonly position = new THREE.Vector3();
   private frameCallback: ((dt: number) => void) | undefined;
 
   constructor(
@@ -74,31 +97,84 @@ export class Stage {
     this.observer = new ResizeObserver(() => this.resize());
     this.observer.observe(host);
     this.resize();
-    this.frameOverview(false);
   }
 
-  /** Frames the overview around these objects. */
-  setFraming(objects: THREE.Object3D[]): void {
-    const bounds = new THREE.Box3();
-    for (const o of objects) bounds.expandByObject(o);
-    bounds.getBoundingSphere(this.framing);
-    this.frameOverview(false);
+  /** Margins, in pixels, kept clear of whatever is framed: the overlays drawn over the scene. */
+  setInsets(insets: Insets): void {
+    const i = this.insets;
+    if (i.top === insets.top && i.right === insets.right && i.bottom === insets.bottom && i.left === insets.left) return;
+    this.insets = insets;
+    if (this.width > 0) this.frame(this.box, undefined, false);
   }
 
-  /** Fits the scale to the narrower of the two fields of view, so portrait phones never crop the beam. */
-  frameOverview(animate: boolean): void {
-    const { center } = this.framing;
-    this.controls.setLookAt(center.x + 0.35, center.y + 0.9, center.z + 4, center.x, center.y, center.z, false);
-    void this.controls.fitToSphere(this.framing, animate);
+  /**
+   * Fits the camera to a box from a direction (a unit vector from the target towards the camera;
+   * the current one if omitted). Each corner is checked against both fields of view, so a wide
+   * scale on a tall phone is fitted by its width rather than a loose bounding sphere, and the box
+   * is centred in the part of the scene the overlays leave clear.
+   */
+  frame(box: THREE.Box3, direction: THREE.Vector3 | undefined, animate: boolean): void {
+    this.box.copy(box);
+    if (this.width === 0) return;
+    const back = direction ? this.back.copy(direction) : this.currentDirection();
+    const right = this.right.crossVectors(UP, back).normalize();
+    const up = this.up.crossVectors(back, right);
+    const { top, right: r, bottom, left } = this.insets;
+    const sx = Math.max(0.3, 1 - (left + r) / this.width);
+    const sy = Math.max(0.3, 1 - (top + bottom) / this.height);
+    const tanV = Math.tan(THREE.MathUtils.degToRad(this.camera.fov / 2));
+    const tanH = tanV * this.camera.aspect;
+    const centre = box.getCenter(this.centre);
+
+    let distance = 0;
+    for (let i = 0; i < 8; i++) {
+      const p = this.corner.set(i & 1 ? box.max.x : box.min.x, i & 2 ? box.max.y : box.min.y, i & 4 ? box.max.z : box.min.z).sub(centre);
+      const z = p.dot(back);
+      distance = Math.max(distance, z + Math.abs(p.dot(right)) / (sx * tanH), z + Math.abs(p.dot(up)) / (sy * tanV));
+    }
+    distance *= 1.06;
+
+    // shift the target so the box centre lands in the middle of the clear area, not of the canvas
+    const cx = (left - r) / this.width;
+    const cy = (bottom - top) / this.height;
+    const target = this.target.copy(centre).addScaledVector(right, -cx * tanH * distance).addScaledVector(up, -cy * tanV * distance);
+    const position = this.position.copy(target).addScaledVector(back, distance);
+    this.controls.maxDistance = Math.max(this.maxDistance, distance);
+    void this.controls.setLookAt(position.x, position.y, position.z, target.x, target.y, target.z, animate && !reducedMotion());
+  }
+
+  /** Closest and furthest the camera may dolly; the fitted distance always fits. */
+  setDistanceRange(min: number, max: number): void {
+    this.controls.minDistance = min;
+    this.maxDistance = max;
+    this.controls.maxDistance = Math.max(max, this.controls.distance);
+  }
+
+  /** Carries the camera along with something it's looking at that has moved by this much. */
+  translate(by: THREE.Vector3): void {
+    this.controls.getTarget(this.target).add(by);
+    this.controls.getPosition(this.position).add(by);
+    const { position: p, target: t } = this;
+    void this.controls.setLookAt(p.x, p.y, p.z, t.x, t.y, t.z, !reducedMotion());
+  }
+
+  private currentDirection(): THREE.Vector3 {
+    this.controls.getPosition(this.position);
+    this.controls.getTarget(this.target);
+    return this.back.subVectors(this.position, this.target).normalize();
   }
 
   private resize(): void {
     const { width, height } = this.host.getBoundingClientRect();
     if (width === 0 || height === 0) return;
+    const first = this.width === 0;
+    this.width = width;
+    this.height = height;
     this.renderer.setSize(width, height, false);
     this.camera.aspect = width / height;
     this.camera.updateProjectionMatrix();
-    this.frameOverview(false);
+    // keep the angle the player chose; only the distance and centring follow the new shape
+    this.frame(this.box, first ? DEFAULT_DIRECTION : undefined, !first);
   }
 
   start(onFrame: (dt: number) => void): void {
