@@ -14,10 +14,11 @@
     lapsed: boolean;
     onplay: () => void;
     onarchive: () => void;
+    onfreeplay: () => void;
     onbackup: () => void;
   }
 
-  let { today, now, played, streak, current, lapsed, onplay, onarchive, onbackup }: Props = $props();
+  let { today, now, played, streak, current, lapsed, onplay, onarchive, onfreeplay, onbackup }: Props = $props();
 
   const date = $derived(puzzleDate(today).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' }));
   const action = $derived(
@@ -46,6 +47,7 @@
 
     <nav class="links">
       <button type="button" class="link" onclick={onarchive}>Archive</button>
+      <button type="button" class="link" onclick={onfreeplay}>Freeplay</button>
       <button type="button" class="link" onclick={onbackup}>Back up progress</button>
     </nav>
   </div>

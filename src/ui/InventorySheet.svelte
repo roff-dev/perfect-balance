@@ -16,10 +16,12 @@
     onnext: () => void;
     /** After the last round the button leads to the score instead. */
     last: boolean;
+    /** A freeplay item cap, which replaces the usual "pan's full" limit. */
+    cap?: number;
     element?: HTMLElement;
   }
 
-  let { items, thumbs, placing, onreset, onreturnall, onlockin, onnext, last, element = $bindable() }: Props = $props();
+  let { items, thumbs, placing, onreset, onreturnall, onlockin, onnext, last, cap, element = $bindable() }: Props = $props();
 
   const sink = new Spring(0, { stiffness: 0.2, damping: 0.55 });
   $effect(() => {
@@ -65,7 +67,7 @@
   </div>
 
   {#if placing.full && placingPhase}
-    <p class="cap">That's plenty — the pan's full.</p>
+    <p class="cap">{cap ? `That's ${cap}, the most this game allows.` : "That's plenty — the pan's full."}</p>
   {/if}
 
   {#if floorCount > 0 && placingPhase}

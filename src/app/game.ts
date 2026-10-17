@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { CONFIG } from '../game/config';
-import { judge, spokenResult, type Result } from '../game/judge';
+import { judge, spokenResult, type Margin, type Result } from '../game/judge';
+import type { RoundSupply } from '../game/freeplay';
 import type { Item, Round } from '../game/round';
 import { tipFor, WOBBLE, type BeamMotion } from '../physics/beam';
 import { PhysicsClient } from '../physics/client';
@@ -25,6 +26,14 @@ const CLOSE_MAX = 3;
 const OVERVIEW_DIRECTION = new THREE.Vector3(0.35, 0.9, 4).normalize();
 /** From the front right and above, looking down into the pan. */
 const CLOSE_DIRECTION = new THREE.Vector3().setFromSphericalCoords(1, THREE.MathUtils.degToRad(52), 0.5);
+
+/** What a game allows: its win window, and how many things can be out at once. */
+export interface Limits {
+  margin: Margin;
+  maxBodies: number;
+}
+
+export const DAILY_LIMITS: Limits = { margin: CONFIG.margin, maxBodies: CONFIG.maxDynamicBodies };
 
 export type View = 'overview' | 'close';
 export type Phase = 'intro' | 'placing' | 'locking' | 'revealing' | 'result' | 'clearing';
@@ -144,9 +153,10 @@ export class Game implements GestureTarget {
   constructor(
     host: HTMLElement,
     private readonly sheet: () => HTMLElement | undefined,
-    private readonly rounds: Round[],
+    private readonly rounds: RoundSupply,
     /** Where a resumed game picks up. */
     first = 0,
+    private readonly limits: Limits = DAILY_LIMITS,
   ) {
     const lowEnd = (navigator.hardwareConcurrency ?? 8) <= 4;
     this.stage = new Stage(host, { shadowMapSize: lowEnd ? 1024 : 2048, maxPixelRatio: lowEnd ? 1.5 : 2 });
@@ -215,7 +225,7 @@ export class Game implements GestureTarget {
             return rect;
           },
           spawn: (n: number, itemId = this.round.inventory[0]!.id) => {
-            for (let i = 0; i < n && this.bodies.size < CONFIG.maxDynamicBodies; i++) {
+            for (let i = 0; i < n && this.bodies.size < this.limits.maxBodies; i++) {
               const k = this.bodies.size;
               const a = k * 2.4;
               const r = 0.12 + (k % 3) * 0.1;
@@ -236,7 +246,7 @@ export class Game implements GestureTarget {
   }
 
   private get round(): Round {
-    return this.rounds[this.index]!;
+    return this.rounds.at(this.index);
   }
 
   async start(): Promise<void> {
@@ -400,7 +410,7 @@ export class Game implements GestureTarget {
     let itemId: string;
     let restore: Pose | undefined;
     if (source.kind === 'item') {
-      if (this.bodies.size >= CONFIG.maxDynamicBodies) return false;
+      if (this.bodies.size >= this.limits.maxBodies) return false;
       itemId = source.itemId;
     } else if (source.kind === 'floor') {
       const id = [...this.bodies].find(([, b]) => b.itemId === source.itemId && !b.onPan)?.[0];
@@ -521,7 +531,7 @@ export class Game implements GestureTarget {
     if (!this.ready || this.phase !== 'placing' || this.carrying) return;
     this.calm = reducedMotion();
     const bodies = [...this.bodies].map(([id, b]) => ({ id, kg: this.kind(b.itemId).item.kg, onPan: b.onPan }));
-    this.result = judge(bodies, this.round.prompt.kg);
+    this.result = judge(bodies, this.round.prompt.kg, this.limits.margin);
     const win = this.result.verdict === 'balanced';
     this.motion = win
       ? this.calm
@@ -542,7 +552,7 @@ export class Game implements GestureTarget {
    * in one step would yank the pans and fling anything on them.
    */
   nextRound(): void {
-    if (this.phase !== 'result' || this.index + 1 >= this.rounds.length) return;
+    if (this.phase !== 'result' || this.index + 1 >= this.rounds.count) return;
     this.calm = reducedMotion();
     for (const id of [...this.bodies.keys()]) this.removeBody(id);
     this.physics.remove(this.promptId);
@@ -603,8 +613,8 @@ export class Game implements GestureTarget {
 
   /** Builds the next round's objects and tile pictures while this result is on screen. */
   private prepareNext(): void {
-    const next = this.rounds[this.index + 1];
-    if (!next || this.prepared) return;
+    if (this.index + 1 >= this.rounds.count || this.prepared) return;
+    const next = this.rounds.at(this.index + 1);
     this.prepared = this.makeKinds(next);
     this.renderThumbnails(next, this.prepared);
   }
@@ -712,7 +722,7 @@ export class Game implements GestureTarget {
       floor: this.round.inventory
         .filter((item) => floor.has(item.id))
         .map((item) => ({ itemId: item.id, name: item.name, count: floor.get(item.id)! })),
-      full: this.bodies.size >= CONFIG.maxDynamicBodies,
+      full: this.bodies.size >= this.limits.maxBodies,
       carrying: this.carrying?.itemId,
       putBack: this.putBack,
       phase: this.phase,

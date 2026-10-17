@@ -1,20 +1,23 @@
 <script lang="ts">
   import { onMount, tick, untrack } from 'svelte';
   import type { Result } from '../game/judge';
-  import type { Round } from '../game/round';
+  import type { RoundSupply } from '../game/freeplay';
   import InventorySheet from '../ui/InventorySheet.svelte';
   import VerdictGlyph from '../ui/VerdictGlyph.svelte';
-  import { Game, type PlacingState, type Selection, type View } from './game';
+  import { DAILY_LIMITS, Game, type Limits, type PlacingState, type Selection, type View } from './game';
 
   interface Props {
-    rounds: Round[];
+    rounds: RoundSupply;
+    limits?: Limits;
+    /** Freeplay rules in a few words, shown under the prompt. */
+    rules?: string;
     /** Rounds already played, when a game is resumed. */
     played?: Result[];
     onresult?: (results: Result[]) => void;
     onfinish: (results: Result[]) => void;
   }
 
-  let { rounds, played = [], onresult, onfinish }: Props = $props();
+  let { rounds, limits = DAILY_LIMITS, rules = '', played = [], onresult, onfinish }: Props = $props();
 
   const ROTATE_STEP = Math.PI / 12;
   // a new game mounts a new screen, so only the first value matters
@@ -30,8 +33,10 @@
   let game: Game | undefined;
   let placing = $state<PlacingState>({ ready: false, round: resumed.length, onPan: {}, panCount: 0, floor: [], full: false, carrying: undefined, putBack: false, phase: 'intro', result: undefined });
   let results = $state<Result[]>([...resumed]);
-  const round = $derived(rounds[placing.round]!);
-  const last = $derived(placing.round === rounds.length - 1);
+  const round = $derived(rounds.at(placing.round));
+  const endless = $derived(rounds.count === Infinity);
+  // an endless game ends at the first miss
+  const last = $derived(endless ? placing.result !== undefined && placing.result.verdict !== 'balanced' : placing.round === rounds.count - 1);
   let thumbs = $state(new Map<string, string>());
   let selection = $state<Selection | null>(null);
   let announcement = $state('');
@@ -75,7 +80,7 @@
   }
 
   onMount(() => {
-    const g = new Game(host, () => sheet, rounds, resumed.length);
+    const g = new Game(host, () => sheet, rounds, resumed.length, limits);
     g.onView = (v) => (view = v);
     g.onState = (s) => (placing = s);
     g.onAnnounce = (m) => void announce(m);
@@ -108,18 +113,25 @@
 
     <header class="top" bind:this={top}>
       <p class="rounds">
-        <span class="visually-hidden">Round {placing.round + 1} of {rounds.length}</span>
-        {#each rounds as _, i (i)}
-          {#if results[i]}
-            <span class="dot {results[i].verdict}"><VerdictGlyph verdict={results[i].verdict} /></span>
-          {:else}
-            <span class="dot" class:current={i === placing.round} aria-hidden="true"></span>
-          {/if}
-        {/each}
+        {#if endless}
+          <span class="count">Round {placing.round + 1}</span>
+        {:else}
+          <span class="visually-hidden">Round {placing.round + 1} of {rounds.count}</span>
+          {#each { length: rounds.count }, i (i)}
+            {#if results[i]}
+              <span class="dot {results[i].verdict}"><VerdictGlyph verdict={results[i].verdict} /></span>
+            {:else}
+              <span class="dot" class:current={i === placing.round} aria-hidden="true"></span>
+            {/if}
+          {/each}
+        {/if}
       </p>
       {#key placing.round}
         <h1 class="prompt">{round.prompt.name}</h1>
       {/key}
+      {#if rules}
+        <p class="rules">{rules}</p>
+      {/if}
     </header>
 
     <button
@@ -177,6 +189,7 @@
     onreturnall={() => game?.returnAll()}
     onlockin={() => game?.lockIn()}
     {last}
+    cap={limits.maxBodies < DAILY_LIMITS.maxBodies ? limits.maxBodies : undefined}
     onnext={() => (last ? onfinish(results) : game?.nextRound())}
   />
 
@@ -229,6 +242,23 @@
     gap: 6px;
     height: 14px;
     margin: 0 0 var(--space-2);
+  }
+
+  .count {
+    font-size: var(--text-small);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    color: var(--ink-soft);
+  }
+
+  .rules {
+    margin: var(--space-1) 0 0;
+    color: var(--brass-ink);
+    font-size: var(--text-small);
+    font-weight: 600;
+    text-shadow:
+      0 0 2px var(--paper),
+      0 0 10px var(--paper);
   }
 
   .dot {

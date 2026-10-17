@@ -3,22 +3,23 @@
   import Archive from './app/Archive.svelte';
   import Backup from './app/Backup.svelte';
   import End from './app/End.svelte';
+  import Freeplay from './app/Freeplay.svelte';
   import Game from './app/Game.svelte';
+  import { DAILY_LIMITS, type Limits } from './app/game';
   import Start from './app/Start.svelte';
   import { dailyGame, puzzleNumber } from './game/daily';
-  import { generateGame, type Plan } from './game/generate';
+  import { describeRules, fromQuery, RoundSupply, rulesFor, toQuery, type FreeplaySettings } from './game/freeplay';
   import { savedResult, type Result } from './game/judge';
-  import { buildRound, type Round } from './game/round';
   import { currentStreak, lapsed, load, record, save, type Mode, type Progress } from './game/storage';
   import Toast from './ui/Toast.svelte';
 
   type Screen = 'start' | 'archive' | 'game' | 'end';
 
   interface Session {
-    /** A numbered puzzle; a game from a seed has none. */
+    /** A numbered puzzle; a freeplay game has none. */
     puzzle?: { mode: Mode; n: number };
-    plans: Plan[];
-    rounds: Round[];
+    freeplay?: FreeplaySettings;
+    rounds: RoundSupply;
     /** Rounds already played, when it's resumed. */
     played: Result[];
     streakBefore: number;
@@ -26,12 +27,13 @@
 
   const randomSeed = () => (Math.random() * 2 ** 32) >>> 0;
 
-  /** `?seed=123` replays a particular game. */
-  function seedFromUrl(): number | undefined {
-    const param = new URLSearchParams(location.search).get('seed');
+  /** `?seed=123` (and any rules with it) replays a particular freeplay game. */
+  function linkedGame(): { seed: number; settings: FreeplaySettings } | undefined {
+    const query = new URLSearchParams(location.search);
+    const param = query.get('seed');
     if (param === null) return undefined;
     const n = Number(param);
-    return Number.isInteger(n) && n >= 0 ? n >>> 0 : randomSeed();
+    return { seed: Number.isInteger(n) && n >= 0 ? n >>> 0 : randomSeed(), settings: fromQuery(query) };
   }
 
   let progress = $state<Progress>(load());
@@ -42,6 +44,7 @@
   let session = $state.raw<Session>();
   let results = $state.raw<Result[]>([]);
   let backingUp = $state(false);
+  let choosingRules = $state(false);
   let toast = $state('');
   let toastTimer: ReturnType<typeof setTimeout> | undefined;
 
@@ -62,34 +65,37 @@
   }
 
   function home(): void {
-    if (session && !session.puzzle) {
-      const url = new URL(location.href);
-      url.searchParams.delete('seed');
-      history.replaceState(null, '', url);
-    }
+    if (session?.freeplay) history.replaceState(history.state, '', location.pathname);
     if (history.state?.away) history.back();
     else screen = 'start';
   }
 
   /** Sets up a game and says which screen shows it: the end screen if it's already finished. */
-  function open(plans: Plan[], puzzle?: Session['puzzle']): Screen {
+  function open(rounds: RoundSupply, puzzle?: Session['puzzle'], freeplay?: FreeplaySettings): Screen {
     // an archive puzzle already finished as a daily shows that result
     const saved = puzzle && (progress.daily[puzzle.n]?.done ? progress.daily[puzzle.n] : progress[puzzle.mode][puzzle.n]);
-    const played = saved?.rounds.map((r, i) => savedResult(r, plans[i]!.prompt.weightKg)) ?? [];
-    session = { puzzle, plans, rounds: plans.map(buildRound), played, streakBefore: currentStreak(progress.streak, today) };
+    const played = saved?.rounds.map((r, i) => savedResult(r, rounds.plan(i).prompt.weightKg)) ?? [];
+    session = { puzzle, freeplay, rounds, played, streakBefore: currentStreak(progress.streak, today) };
     if (!saved?.done) return 'game';
     results = played;
     return 'end';
   }
 
-  const openPuzzle = (mode: Mode, n: number) => go(open(dailyGame(n), { mode, n }));
+  const openPuzzle = (mode: Mode, n: number) => go(open(RoundSupply.of(dailyGame(n)), { mode, n }));
 
-  function playAgain(): void {
-    const url = new URL(location.href);
-    url.searchParams.delete('seed');
-    history.replaceState(history.state, '', url);
-    go(open(generateGame(randomSeed())));
+  /** The address bar always holds the game's link, so it can be shared or reloaded. */
+  function openFreeplay(seed: number, settings: FreeplaySettings): void {
+    go(open(RoundSupply.freeplay(seed, settings), undefined, settings));
+    history.replaceState(history.state, '', location.pathname + toQuery(seed, settings));
   }
+
+  function startFreeplay(settings: FreeplaySettings): void {
+    progress.settings.freeplay = settings;
+    persist();
+    openFreeplay(randomSeed(), settings);
+  }
+
+  const limitsFor = (s: FreeplaySettings): Limits => ({ margin: rulesFor(s).margin, maxBodies: s.cap || DAILY_LIMITS.maxBodies });
 
   function saveRounds(played: Result[]): void {
     const puzzle = session?.puzzle;
@@ -106,8 +112,8 @@
     persist();
   }
 
-  const linked = seedFromUrl();
-  if (linked !== undefined) screen = open(generateGame(linked));
+  const linked = linkedGame();
+  if (linked) screen = open(RoundSupply.freeplay(linked.seed, linked.settings), undefined, linked.settings);
 
   onMount(() => {
     const clock = setInterval(() => (now = Date.now()), 1000);
@@ -133,6 +139,7 @@
     lapsed={lapsed(progress.streak, today)}
     onplay={() => openPuzzle('daily', today)}
     onarchive={() => go('archive')}
+    onfreeplay={() => (choosingRules = true)}
     onbackup={() => (backingUp = true)}
   />
 {:else if screen === 'archive'}
@@ -141,6 +148,8 @@
   {#key session}
     <Game
       rounds={session.rounds}
+      limits={session.freeplay ? limitsFor(session.freeplay) : DAILY_LIMITS}
+      rules={session.freeplay ? describeRules(session.freeplay) : ''}
       played={session.played}
       onresult={saveRounds}
       onfinish={(r) => {
@@ -152,18 +161,24 @@
 {:else if session && screen === 'end'}
   {#key session}
     <End
-      prompts={session.plans.map((p) => p.prompt.name)}
+      prompts={results.map((_, i) => session!.rounds.plan(i).prompt.name)}
       {results}
       puzzle={session.puzzle}
+      endless={session.freeplay?.endless}
       streak={session.puzzle?.mode === 'daily' ? { from: session.streakBefore, to: currentStreak(progress.streak, today) } : undefined}
       {unsaved}
       {now}
       ontoast={showToast}
-      onplay={session.puzzle ? undefined : playAgain}
+      onplay={() => openFreeplay(randomSeed(), session!.freeplay!)}
+      onrules={() => (choosingRules = true)}
       onarchive={() => (screen = 'archive')}
       onhome={home}
     />
   {/key}
+{/if}
+
+{#if choosingRules}
+  <Freeplay settings={progress.settings.freeplay} onstart={startFreeplay} onclose={() => (choosingRules = false)} />
 {/if}
 
 {#if backingUp}

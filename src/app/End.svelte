@@ -10,21 +10,25 @@
   interface Props {
     prompts: string[];
     results: Result[];
-    /** A numbered puzzle; a game from a seed has none. */
+    /** A numbered puzzle; a freeplay game has none. */
     puzzle?: { mode: Mode; n: number };
+    /** A freeplay game that ran until the first miss. */
+    endless?: boolean;
     /** The streak before and after this game, when it's today's puzzle just finished. */
     streak?: { from: number; to: number };
     unsaved: boolean;
     now: number;
     ontoast: (message: string) => void;
-    onplay?: () => void;
+    onplay: () => void;
+    onrules: () => void;
     onarchive: () => void;
     onhome: () => void;
   }
 
-  let { prompts, results, puzzle, streak, unsaved, now, ontoast, onplay, onarchive, onhome }: Props = $props();
+  let { prompts, results, puzzle, endless = false, streak, unsaved, now, ontoast, onplay, onrules, onarchive, onhome }: Props = $props();
 
   const wins = $derived(results.filter((r) => r.verdict === 'balanced').length);
+  const digits = $derived([...String(wins)].map(Number));
   let heading: HTMLElement;
   let card: File | undefined;
   let shownStreak = $state(0);
@@ -49,14 +53,34 @@
     if (outcome === 'copied') ontoast('Copied');
     else if (outcome === 'failed') ontoast("Couldn't share or copy from this browser.");
   }
+
+  async function copyLink(): Promise<void> {
+    try {
+      await navigator.clipboard.writeText(location.href);
+      ontoast('Link copied');
+    } catch {
+      ontoast("Couldn't copy the link from this browser.");
+    }
+  }
 </script>
 
 <main class="end">
-  <h1 class="score" bind:this={heading} tabindex="-1" aria-label="You balanced {wins} out of {results.length}.">
-    <span aria-hidden="true"><Drum digit={wins} delay={250} /></span><span class="of" aria-hidden="true">/{results.length}</span>
+  <h1 class="score" bind:this={heading} tabindex="-1" aria-label={endless ? `You balanced ${wins} in a row.` : `You balanced ${wins} out of ${results.length}.`}>
+    <span class="drums" aria-hidden="true">
+      {#each digits as digit, i (i)}
+        <Drum {digit} delay={250 + i * 60} />
+      {/each}
+    </span>
+    {#if !endless}
+      <span class="of" aria-hidden="true">/{results.length}</span>
+    {/if}
   </h1>
   <p class="line">
-    {wins} out of {results.length}.{#if puzzle?.mode === 'daily'}{' '}Same time tomorrow.{/if}
+    {#if endless}
+      {wins === 0 ? 'Missed the first one.' : `${wins} in a row.`}
+    {:else}
+      {wins} out of {results.length}.{#if puzzle?.mode === 'daily'}{' '}Same time tomorrow.{/if}
+    {/if}
   </p>
 
   <ol class="list">
@@ -73,14 +97,18 @@
   <div class="actions">
     {#if puzzle}
       <button type="button" class="primary" onclick={share}>Share</button>
-    {:else if onplay}
+    {:else}
       <button type="button" class="primary" onclick={onplay}>Play again</button>
     {/if}
     <nav class="links">
       {#if puzzle?.mode === 'archive'}
         <button type="button" class="link" onclick={onarchive}>Back to the archive</button>
-      {:else}
+      {:else if puzzle}
         <button type="button" class="link" onclick={onarchive}>Archive</button>
+        <button type="button" class="link" onclick={onrules}>Freeplay</button>
+      {:else}
+        <button type="button" class="link" onclick={onrules}>Change rules</button>
+        <button type="button" class="link" onclick={copyLink}>Copy link</button>
       {/if}
       <button type="button" class="link" onclick={onhome}>{puzzle?.mode === 'daily' ? 'Home' : "Today's puzzle"}</button>
     </nav>
@@ -124,6 +152,11 @@
     font-size: clamp(96px, 18vw + 2rem, 160px);
     line-height: 1;
     outline: none;
+  }
+
+  .drums {
+    display: inline-flex;
+    gap: 0.04em;
   }
 
   .of {
