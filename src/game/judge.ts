@@ -37,6 +37,11 @@ export function judge(bodies: { kg: number; onPan: boolean }[], promptKg: number
   return { totalKg, ratio, verdict: verdictFor(ratio), percent: formatPercent(ratio) };
 }
 
+/** A result rebuilt from saved progress. The saved win stands even if the window has changed since. */
+export function savedResult({ ratio, win }: { ratio: number; win: boolean }, promptKg: number): Result {
+  return { totalKg: ratio * promptKg, ratio, verdict: win ? 'balanced' : ratio > 1 ? 'heavy' : 'light', percent: formatPercent(ratio) };
+}
+
 /** The result as a screen reader should hear it: "98.1 percent. Balanced." */
 export function spokenResult({ percent, verdict }: Result): string {
   const amount = percent.startsWith('<') ? `less than ${percent.slice(1, -1)} percent` : `${percent.slice(0, -1)} percent`;
