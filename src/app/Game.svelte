@@ -31,9 +31,11 @@
   let view = $state<View>('overview');
   let sheet = $state<HTMLElement>();
   let game: Game | undefined;
-  let placing = $state<PlacingState>({ ready: false, round: resumed.length, onPan: {}, panCount: 0, floor: [], full: false, carrying: undefined, putBack: false, phase: 'intro', result: undefined });
+  let placing = $state<PlacingState>({ ready: false, round: resumed.length, onPan: {}, panCount: 0, floor: [], full: false, carrying: undefined, putBack: false, phase: 'intro', result: undefined, missing: [], failed: false });
   let results = $state<Result[]>([...resumed]);
   const round = $derived(rounds.at(placing.round));
+  // an object that wouldn't load is left out of the round
+  const inventory = $derived(round.inventory.filter((item) => !placing.missing.includes(item.id)));
   const endless = $derived(rounds.count === Infinity);
   // an endless game ends at the first miss
   const last = $derived(endless ? placing.result !== undefined && placing.result.verdict !== 'balanced' : placing.round === rounds.count - 1);
@@ -43,7 +45,7 @@
   let error = $state<string | undefined>();
 
   const description = $derived.by(() => {
-    const things = round.inventory
+    const things = inventory
       .filter((item) => placing.onPan[item.id])
       .map((item) => `${placing.onPan[item.id]} × ${item.name}`);
     const pan = things.length ? `Your pan holds ${things.join(', ')}.` : 'Your pan is empty.';
@@ -155,8 +157,21 @@
     <div class="foot" bind:this={foot}>
       {#if error}
         <p class="status error" role="alert">Something slipped. Reload the page to set the scale up again.</p>
+      {:else if placing.failed}
+        <div class="retry" role="alert">
+          <p class="status">Couldn't load this round — try again</p>
+          <button type="button" onclick={() => game?.retry()}>
+            <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+              <path d="M15.5 7.5A7 7 0 1 0 19 13" />
+              <path d="M20 5.5v4.2h-4.2" />
+            </svg>
+            Retry
+          </button>
+        </div>
       {:else if !placing.ready}
         <p class="status" role="status">Setting up the scale…</p>
+      {:else if placing.phase === 'loading'}
+        <p class="status" role="status">Loading the round…</p>
       {:else if placing.phase === 'placing' && placing.panCount === 0 && placing.carrying === undefined}
         <p class="status">Drag something onto your pan.</p>
       {/if}
@@ -181,7 +196,7 @@
   </div>
 
   <InventorySheet
-    items={round.inventory}
+    items={inventory}
     {thumbs}
     {placing}
     bind:element={sheet}
@@ -380,6 +395,46 @@
 
   .error {
     color: var(--heavy);
+  }
+
+  .retry {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2) var(--space-3);
+  }
+
+  .retry .status {
+    color: var(--ink);
+  }
+
+  .retry button {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    min-height: var(--target);
+    padding: 0 var(--space-4) 0 var(--space-3);
+    border: 1px solid var(--paper-sunk);
+    border-radius: var(--radius-control);
+    background: var(--paper-raised);
+    color: var(--ink);
+    font-weight: 600;
+    cursor: pointer;
+    pointer-events: auto;
+    touch-action: manipulation;
+    box-shadow: 0 6px 14px -10px rgb(31 27 23 / 0.45);
+  }
+
+  .retry button:hover {
+    border-color: var(--ink-soft);
+  }
+
+  .retry path {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
   }
 
   .rotate {

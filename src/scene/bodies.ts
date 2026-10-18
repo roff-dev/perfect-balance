@@ -1,13 +1,6 @@
 import * as THREE from 'three';
-import { ConvexGeometry } from 'three/addons/geometries/ConvexGeometry.js';
 import { POSE_STRIDE, RIG_ENTRIES, type Snapshot } from '../physics/protocol';
 import type { Pose } from './ghost';
-
-export function hullGeometry(points: Float32Array): THREE.BufferGeometry {
-  const v: THREE.Vector3[] = [];
-  for (let i = 0; i < points.length; i += 3) v.push(new THREE.Vector3(points[i], points[i + 1], points[i + 2]));
-  return new ConvexGeometry(v);
-}
 
 /** Render meshes for physics bodies, keyed by body id. Geometry and materials are shared, so they're never disposed here. */
 export class BodyMeshes {

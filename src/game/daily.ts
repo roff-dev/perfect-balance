@@ -1,4 +1,4 @@
-import { CATALOGUE, type CatalogueEntry } from '../data/catalogue';
+import type { CatalogueEntry } from '../data/catalogue';
 import { CATALOGUE_VERSIONS, type VersionRange } from '../data/catalogue-versions';
 import { CONFIG } from './config';
 import { generateGame, promptOrder, type Plan } from './generate';
@@ -62,7 +62,7 @@ function recentFrom(history: string[][], n: number): Map<string, number> {
 }
 
 /** Puzzle `n`'s five rounds: the same for everyone, and never changed by later catalogue additions. */
-export function dailyGame(n: number, catalogue: readonly CatalogueEntry[] = CATALOGUE): Plan[] {
+export function dailyGame(n: number, catalogue: readonly CatalogueEntry[]): Plan[] {
   const range = versionFor(n);
   return generateGame(seedFor(n, range), { catalogue, version: range.catalogue, recent: recentBefore(n, catalogue) });
 }

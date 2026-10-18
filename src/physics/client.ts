@@ -111,10 +111,10 @@ export class PhysicsClient {
     this.post({ type: 'scale', options });
   }
 
-  /** Copies the points: the caller usually keeps its hull for the next copy of the item. */
+  /** Copies the hulls: the caller usually keeps them for the next copy of the item. */
   add(body: BodySpec): void {
-    const points = body.points.slice();
-    this.post({ type: 'add', body: { ...body, points } }, [points.buffer]);
+    const hulls = body.hulls.map((h) => h.slice());
+    this.post({ type: 'add', body: { ...body, hulls } }, hulls.map((h) => h.buffer));
   }
 
   remove(id: number): void {

@@ -7,7 +7,7 @@ import { tipFor, WOBBLE, type BeamMotion } from '../physics/beam';
 import { PhysicsClient } from '../physics/client';
 import { POSE_STRIDE, RIG_ENTRIES, type Snapshot } from '../physics/protocol';
 import { locate, PAN_FLOOR_TOP, panRestY, RIG, type Quat, type Vec3 } from '../physics/rig';
-import { BodyMeshes, hullGeometry } from '../scene/bodies';
+import { BodyMeshes } from '../scene/bodies';
 import { Ghost, type Pose } from '../scene/ghost';
 import { Gestures, type Aim, type CarrySource, type GestureTarget } from '../scene/gestures';
 import { ScaleModel } from '../scene/scale';
@@ -36,7 +36,7 @@ export interface Limits {
 export const DAILY_LIMITS: Limits = { margin: CONFIG.margin, maxBodies: CONFIG.maxDynamicBodies };
 
 export type View = 'overview' | 'close';
-export type Phase = 'intro' | 'placing' | 'locking' | 'revealing' | 'result' | 'clearing';
+export type Phase = 'loading' | 'intro' | 'placing' | 'locking' | 'revealing' | 'result' | 'clearing';
 
 /** Lock-in choreography, in seconds; the second number is the reduced-motion version. */
 const FADE_SECONDS = 0.18;
@@ -69,6 +69,10 @@ export interface PlacingState {
   putBack: boolean;
   phase: Phase;
   result: Result | undefined;
+  /** Objects left out of this round because their models wouldn't load. */
+  missing: string[];
+  /** The round's models wouldn't load, and it can't be played without them. */
+  failed: boolean;
 }
 
 /** Where to draw the rotate buttons: just under the selected object, in client pixels. */
@@ -86,8 +90,16 @@ interface Placed {
 
 interface Kind {
   item: Item;
+  /** Stretched to the object's size; the material is shared. */
   geometry: THREE.BufferGeometry;
   material: THREE.MeshStandardMaterial;
+  /** In physics units, in the body's frame. */
+  hulls: Float32Array[];
+}
+
+interface Loaded {
+  kinds: Map<string, Kind>;
+  missing: string[];
 }
 
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
@@ -109,8 +121,12 @@ export class Game implements GestureTarget {
   private readonly ghost = new Ghost();
   private readonly gestures: Gestures;
   private kinds = new Map<string, Kind>();
-  /** The next round's objects, built while this round's result is showing. */
-  private prepared: Map<string, Kind> | undefined;
+  private missing: string[] = [];
+  /** A round's objects, loading in the background: the next one's start while this result shows. */
+  private prepared: { index: number; loaded: Promise<Loaded> } | undefined;
+  private failed = false;
+  /** The round being loaded, for a retry. */
+  private opening = 0;
   private index: number;
   private readonly bodies = new Map<number, Placed>();
   private readonly ray = new THREE.Raycaster();
@@ -168,7 +184,6 @@ export class Game implements GestureTarget {
     this.canvas = this.stage.renderer.domElement;
     this.physics.onError = (m) => this.onError(m);
     this.index = first;
-    this.kinds = this.makeKinds(this.round);
     this.gestures = new Gestures(this);
     this.canvas.addEventListener('pointermove', this.hover);
     addEventListener('pointerdown', this.skipIntro, true);
@@ -251,34 +266,86 @@ export class Game implements GestureTarget {
 
   async start(): Promise<void> {
     this.stage.start((dt) => this.frame(dt));
-    this.renderThumbnails(this.round);
+    this.prepare(this.index);
     await this.physics.init({ unitsPerMetre: this.round.unitsPerMetre });
+    await this.open(this.index);
+  }
+
+  /**
+   * Loads a round's models and stretches each to its object's size. One that won't load (after
+   * its retries) is left out, unless the round can't be played without it.
+   */
+  private async load(index: number): Promise<Loaded> {
+    const round = this.rounds.at(index);
+    const { loadModel, shapeModel, MATERIAL } = await import('../scene/models');
+    const items = [round.prompt, ...round.inventory];
+    const models = await Promise.allSettled(items.map(({ model }) => ('file' in model ? loadModel(model.file) : shapeModel(model.shape, model.color))));
+    const missing = items.filter((_, i) => models[i]!.status === 'rejected').map((item) => item.id);
+    if (missing.length && !this.rounds.playableWithout(index, missing)) throw new Error(`Round ${index + 1} couldn't load: ${missing.join(', ')}`);
+    const kinds = new Map<string, Kind>();
+    items.forEach((item, i) => {
+      const result = models[i]!;
+      if (result.status === 'rejected') return;
+      const [x, y, z] = item.size;
+      kinds.set(item.id, {
+        item,
+        geometry: result.value.geometry.clone().scale(x, y, z),
+        material: MATERIAL,
+        hulls: result.value.hulls.map((hull) => hull.map((v, k) => v * item.size[k % 3]!)),
+      });
+    });
+    return { kinds, missing };
+  }
+
+  /** Starts loading a round in the background, once. */
+  private prepare(index: number): Promise<Loaded> {
+    if (this.prepared?.index !== index) {
+      const loaded = this.load(index);
+      // the failure is dealt with when the round opens
+      loaded.catch(() => {});
+      this.prepared = { index, loaded };
+    }
+    return this.prepared.loaded;
+  }
+
+  /** Waits for a round's objects, then lowers its prompt in. If they won't load, it waits for a retry. */
+  private async open(index: number): Promise<void> {
+    this.failed = false;
+    this.opening = index;
+    this.setPhase('loading');
+    let loaded: Loaded;
+    try {
+      loaded = await this.prepare(index);
+    } catch {
+      this.failed = true;
+      return;
+    } finally {
+      if (this.prepared?.index === index) this.prepared = undefined;
+    }
+    if (this.disposed) return this.disposeKinds(loaded.kinds);
+    this.disposeKinds(this.kinds);
+    this.kinds = loaded.kinds;
+    this.missing = loaded.missing;
+    this.index = index;
+    // the world is empty here, so it can change size
+    this.physics.scale({ unitsPerMetre: this.round.unitsPerMetre });
     this.ready = true;
+    this.renderThumbnails(this.round);
     this.beginIntro();
   }
 
-  private makeKinds(round: Round): Map<string, Kind> {
-    const kinds = new Map<string, Kind>();
-    for (const item of [round.prompt, ...round.inventory]) {
-      kinds.set(item.id, {
-        item,
-        geometry: hullGeometry(item.points),
-        material: new THREE.MeshStandardMaterial({ color: item.color, roughness: 0.8, flatShading: true }),
-      });
-    }
-    return kinds;
+  /** Tries a round that wouldn't load again. */
+  retry(): void {
+    if (this.failed) void this.open(this.opening);
   }
 
   private disposeKinds(kinds: Map<string, Kind>): void {
-    for (const { geometry, material } of kinds.values()) {
-      geometry.dispose();
-      material.dispose();
-    }
+    for (const { geometry } of kinds.values()) geometry.dispose();
   }
 
   /** Pictures for a round's tiles, from its kinds once they're built. */
   private renderThumbnails(round: Round, kinds = this.kinds): void {
-    const missing = round.inventory.filter((item) => !this.thumbnails.has(item.id)).map((item) => ({ id: item.id, ...kinds.get(item.id)! }));
+    const missing = round.inventory.filter((item) => !this.thumbnails.has(item.id) && kinds.has(item.id)).map((item) => ({ id: item.id, ...kinds.get(item.id)! }));
     void renderThumbnails(missing)
       .then((urls) => {
         if (this.disposed) return urls.forEach((url) => URL.revokeObjectURL(url));
@@ -296,7 +363,7 @@ export class Game implements GestureTarget {
   private beginIntro(): void {
     const prompt = this.kind(this.round.prompt.id);
     let bottom = Infinity;
-    for (let i = 1; i < prompt.item.points.length; i += 3) bottom = Math.min(bottom, prompt.item.points[i]!);
+    for (const hull of prompt.hulls) for (let i = 1; i < hull.length; i += 3) bottom = Math.min(bottom, hull[i]!);
     this.promptRest = { pos: [-RIG.armLength, panRestY() + PAN_FLOOR_TOP - bottom + 0.005, 0], quat: [0, 0, 0, 1] };
     const id = this.nextId++;
     this.promptId = id;
@@ -312,7 +379,7 @@ export class Game implements GestureTarget {
   private endIntro(): void {
     if (this.phase !== 'intro' || !this.promptRest) return;
     this.meshes.get(this.promptId)?.position.fromArray(this.promptRest.pos);
-    this.physics.add({ id: this.promptId, points: this.round.prompt.points, ...this.promptRest });
+    this.physics.add({ id: this.promptId, hulls: this.kind(this.round.prompt.id).hulls, ...this.promptRest });
     this.setPhase('placing');
   }
 
@@ -371,7 +438,7 @@ export class Game implements GestureTarget {
     const kind = this.kind(itemId);
     const id = this.nextId++;
     this.meshes.add(id, kind.geometry, kind.material, pose);
-    this.physics.add({ id, points: kind.item.points, ...pose });
+    this.physics.add({ id, hulls: kind.hulls, ...pose });
     this.bodies.set(id, { itemId, onPan: this.isOnPan(pose.pos) });
     return id;
   }
@@ -599,7 +666,7 @@ export class Game implements GestureTarget {
     } else if (this.phase === 'clearing' && this.phaseTime >= LEVEL_SECONDS[i] + 0.1) {
       this.physics.unlock();
       this.pinTarget = 0;
-      this.loadNext();
+      void this.open(this.index + 1);
     } else if (this.phase === 'intro') {
       this.introTime += dt;
       const t = Math.min(1, this.introTime / INTRO_SECONDS);
@@ -611,23 +678,13 @@ export class Game implements GestureTarget {
     this.scale.pin.position.z = 0.07 + this.pinOut * PIN_TRAVEL;
   }
 
-  /** Builds the next round's objects and tile pictures while this result is on screen. */
+  /** Loads the next round's objects and draws their tile pictures while this result is on screen. */
   private prepareNext(): void {
-    if (this.index + 1 >= this.rounds.count || this.prepared) return;
-    const next = this.rounds.at(this.index + 1);
-    this.prepared = this.makeKinds(next);
-    this.renderThumbnails(next, this.prepared);
-  }
-
-  private loadNext(): void {
-    this.prepareNext();
-    this.disposeKinds(this.kinds);
-    this.kinds = this.prepared!;
-    this.prepared = undefined;
-    this.index++;
-    // the world is empty here, so it can change size
-    this.physics.scale({ unitsPerMetre: this.round.unitsPerMetre });
-    this.beginIntro();
+    const index = this.index + 1;
+    if (index >= this.rounds.count) return;
+    void this.prepare(index)
+      .then(({ kinds }) => this.renderThumbnails(this.rounds.at(index), kinds))
+      .catch(() => {});
   }
 
   private frame(dt: number): void {
@@ -727,6 +784,8 @@ export class Game implements GestureTarget {
       putBack: this.putBack,
       phase: this.phase,
       result: this.phase === 'result' ? this.result : undefined,
+      missing: this.missing,
+      failed: this.failed,
     };
     const key = JSON.stringify(state);
     if (key === this.lastState) return;
@@ -743,6 +802,6 @@ export class Game implements GestureTarget {
     this.physics.dispose();
     for (const url of this.thumbnails.values()) URL.revokeObjectURL(url);
     this.disposeKinds(this.kinds);
-    if (this.prepared) this.disposeKinds(this.prepared);
+    void this.prepared?.loaded.then(({ kinds }) => this.disposeKinds(kinds)).catch(() => {});
   }
 }

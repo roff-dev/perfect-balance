@@ -1,8 +1,7 @@
-import { CATALOGUE, type CatalogueEntry, type Theme } from '../data/catalogue';
+import type { CatalogueEntry, Theme } from '../data/catalogue';
 import { CONFIG } from './config';
 import { verdictFor, type Margin } from './judge';
 import { hashSeed, int, mulberry32, pick, shuffle, type Rng } from './random';
-import { ROUNDED } from './shapes';
 
 /**
  * How much of the pan the solution may fill, fixed by the packing test. By volume: its bounding
@@ -49,7 +48,7 @@ export interface Plan {
 }
 
 export interface GameOptions {
-  catalogue?: readonly CatalogueEntry[];
+  catalogue: readonly CatalogueEntry[];
   /** Only entries added in this catalogue version or earlier take part. */
   version?: number;
   /** How many puzzles ago each prompt last came up. */
@@ -71,7 +70,7 @@ export const weightBand = (kg: number) => Math.floor(Math.log(kg) / BAND);
  */
 export function generateGame(
   seed: number,
-  { catalogue = CATALOGUE, version = Infinity, recent = new Map(), rules = DAILY_RULES, rounds = CONFIG.roundsPerGame }: GameOptions = {},
+  { catalogue, version = Infinity, recent = new Map(), rules = DAILY_RULES, rounds = CONFIG.roundsPerGame }: GameOptions,
 ): Plan[] {
   const entries = catalogue.filter((e) => e.addedIn <= version);
   const prompts = rules.theme ? entries.filter((e) => e.themes.includes(rules.theme!)) : entries;
@@ -150,8 +149,8 @@ export function brassWeight(prompt: CatalogueEntry): CatalogueEntry {
     weightKg: kg,
     dimensionsM: { l: d, w: d, h: d },
     canBeInventory: false,
-    shape: 'cylinder',
-    color: '#b8892f',
+    unsteady: false,
+    model: { shape: 'cylinder', color: '#b8892f' },
   };
 }
 
@@ -228,7 +227,7 @@ function tryRound(prompt: CatalogueEntry, entries: readonly CatalogueEntry[], rn
 }
 
 /** Rolls off a pile or topples when stacked: balls, animals, and anything much taller than it is wide. */
-const unsteady = (e: CatalogueEntry) => ROUNDED.has(e.shape) || e.dimensionsM.h >= TOPPLES * Math.min(e.dimensionsM.l, e.dimensionsM.w);
+const unsteady = (e: CatalogueEntry) => !!e.unsteady || e.dimensionsM.h >= TOPPLES * Math.min(e.dimensionsM.l, e.dimensionsM.w);
 
 export function packs(solution: Plan['solution'], panMetres: number): boolean {
   const panArea = (Math.PI * panMetres * panMetres) / 4;

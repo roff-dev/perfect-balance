@@ -1,10 +1,7 @@
 // Convex hull point clouds for simple objects. Each shape is drawn inside a unit cube centred on
 // the origin, then stretched to the object's real length, width and height.
 
-export type ShapeKind = 'box' | 'cylinder' | 'disc' | 'ball' | 'tub' | 'jar' | 'bottle' | 'keg' | 'pineapple' | 'animal' | 'person';
-
-/** Shapes that roll or topple rather than stack. */
-export const ROUNDED: ReadonlySet<ShapeKind> = new Set(['ball', 'pineapple', 'animal', 'person']);
+export type ShapeKind = 'box' | 'cylinder' | 'disc' | 'ball' | 'tub' | 'jar' | 'bottle' | 'keg' | 'pineapple' | 'animal' | 'person' | 'cone' | 'sack';
 
 export interface Dimensions {
   /** Along x. */
@@ -60,20 +57,10 @@ const UNIT: Record<ShapeKind, () => number[]> = {
   pineapple: () => lathe([[0.42, -0.5], [0.5, -0.15], [0.42, 0.3], [0.15, 0.5]], 8),
   animal: () => ellipsoid(3, 8),
   person: () => lathe([[0.36, -0.5], [0.5, 0.12], [0.32, 0.36], [0.22, 0.5]], 8),
+  cone: () => lathe([[0.18, -0.5], [0.5, 0.5]], 10),
+  // tied at the top
+  sack: () => lathe([[0.42, -0.5], [0.5, -0.2], [0.5, 0.25], [0.3, 0.5]], 8),
 };
 
-/** In metres, centred, resting with its base at y = -h / 2. */
-export function hullPoints(kind: ShapeKind, { l, w, h }: Dimensions): Float32Array {
-  const unit = UNIT[kind]();
-  const out = new Float32Array(unit.length);
-  for (let i = 0; i < unit.length; i += 3) {
-    out[i] = unit[i]! * l;
-    out[i + 1] = unit[i + 1]! * h;
-    out[i + 2] = unit[i + 2]! * w;
-  }
-  return out;
-}
-
-export function scaled(points: Float32Array, k: number): Float32Array {
-  return points.map((v) => v * k);
-}
+/** Inside a unit cube centred on the origin. */
+export const unitPoints = (kind: ShapeKind): number[] => UNIT[kind]();

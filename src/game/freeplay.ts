@@ -1,6 +1,6 @@
-import { THEME_NAMES, type Theme } from '../data/catalogue';
+import { THEME_NAMES, type CatalogueEntry, type Theme } from '../data/catalogue';
 import { CONFIG } from './config';
-import { DAILY_RULES, generateGame, type Plan, type Rules } from './generate';
+import { DAILY_RULES, generateGame, solve, type Plan, type Rules } from './generate';
 import { hashSeed } from './random';
 import { buildRound, type Round } from './round';
 
@@ -89,6 +89,8 @@ export class RoundSupply {
     private readonly more: (batch: number, previous: Plan[]) => Plan[],
     /** Infinity for endless. */
     readonly count: number,
+    /** A freeplay game's rules. Without them nothing can be left out of a round: a numbered puzzle is the same for everyone. */
+    private readonly rules?: Rules,
   ) {}
 
   plan(i: number): Plan {
@@ -100,18 +102,26 @@ export class RoundSupply {
     return (this.built[i] ??= buildRound(this.plan(i)));
   }
 
-  static of(plans: Plan[]): RoundSupply {
-    return new RoundSupply(() => plans, plans.length);
+  /** Whether round `i` can still be balanced without these objects, say because their models wouldn't load. */
+  playableWithout(i: number, ids: readonly string[]): boolean {
+    const plan = this.plan(i);
+    if (!this.rules || ids.includes(plan.prompt.id)) return false;
+    return !!solve(plan.inventory.filter((e) => !ids.includes(e.id)), plan.prompt.weightKg, this.rules);
   }
 
-  static freeplay(seed: number, s: FreeplaySettings): RoundSupply {
+  static of(plans: Plan[], rules?: Rules): RoundSupply {
+    return new RoundSupply(() => plans, plans.length, rules);
+  }
+
+  static freeplay(seed: number, s: FreeplaySettings, catalogue: readonly CatalogueEntry[]): RoundSupply {
     const rules = rulesFor(s);
-    if (!s.endless) return RoundSupply.of(generateGame(seed, { rules, rounds: s.rounds }));
+    if (!s.endless) return RoundSupply.of(generateGame(seed, { catalogue, rules, rounds: s.rounds }), rules);
     // each batch avoids the last one's prompts where it can
     return new RoundSupply(
       (batch, previous) =>
-        generateGame(batch ? hashSeed(seed, 'endless', batch) : seed, { rules, rounds: CONFIG.roundsPerGame, recent: new Map(previous.map((p) => [p.prompt.id, 1])) }),
+        generateGame(batch ? hashSeed(seed, 'endless', batch) : seed, { catalogue, rules, rounds: CONFIG.roundsPerGame, recent: new Map(previous.map((p) => [p.prompt.id, 1])) }),
       Infinity,
+      rules,
     );
   }
 }

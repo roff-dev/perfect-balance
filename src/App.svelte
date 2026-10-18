@@ -7,6 +7,7 @@
   import Game from './app/Game.svelte';
   import { DAILY_LIMITS, type Limits } from './app/game';
   import Start from './app/Start.svelte';
+  import { loadCatalogue, type CatalogueEntry } from './data/catalogue';
   import { dailyGame, puzzleNumber } from './game/daily';
   import { describeRules, fromQuery, RoundSupply, rulesFor, toQuery, type FreeplaySettings } from './game/freeplay';
   import { savedResult, type Result } from './game/judge';
@@ -26,6 +27,17 @@
   }
 
   const randomSeed = () => (Math.random() * 2 ** 32) >>> 0;
+
+  let catalogue: Promise<readonly CatalogueEntry[]> | undefined;
+
+  /** Loads the catalogue once; if it fails, the next game tries again. */
+  function withCatalogue(): Promise<readonly CatalogueEntry[]> {
+    catalogue ??= loadCatalogue().catch((e: unknown) => {
+      catalogue = undefined;
+      throw e;
+    });
+    return catalogue;
+  }
 
   /** `?seed=123` (and any rules with it) replays a particular freeplay game. */
   function linkedGame(): { seed: number; settings: FreeplaySettings } | undefined {
@@ -81,18 +93,26 @@
     return 'end';
   }
 
-  const openPuzzle = (mode: Mode, n: number) => go(open(RoundSupply.of(dailyGame(n)), { mode, n }));
+  const offline = () => showToast("Couldn't load the objects. Check your connection and try again.");
+
+  async function openPuzzle(mode: Mode, n: number): Promise<void> {
+    const entries = await withCatalogue().catch(() => undefined);
+    if (entries) go(open(RoundSupply.of(dailyGame(n, entries)), { mode, n }));
+    else offline();
+  }
 
   /** The address bar always holds the game's link, so it can be shared or reloaded. */
-  function openFreeplay(seed: number, settings: FreeplaySettings): void {
-    go(open(RoundSupply.freeplay(seed, settings), undefined, settings));
+  async function openFreeplay(seed: number, settings: FreeplaySettings): Promise<void> {
+    const entries = await withCatalogue().catch(() => undefined);
+    if (!entries) return offline();
+    go(open(RoundSupply.freeplay(seed, settings, entries), undefined, settings));
     history.replaceState(history.state, '', location.pathname + toQuery(seed, settings));
   }
 
   function startFreeplay(settings: FreeplaySettings): void {
     progress.settings.freeplay = settings;
     persist();
-    openFreeplay(randomSeed(), settings);
+    void openFreeplay(randomSeed(), settings);
   }
 
   const limitsFor = (s: FreeplaySettings): Limits => ({ margin: rulesFor(s).margin, maxBodies: s.cap || DAILY_LIMITS.maxBodies });
@@ -113,9 +133,21 @@
   }
 
   const linked = linkedGame();
-  if (linked) screen = open(RoundSupply.freeplay(linked.seed, linked.settings), undefined, linked.settings);
+  if (linked) {
+    // shows nothing until the game is ready
+    screen = 'game';
+    withCatalogue().then(
+      (entries) => (screen = open(RoundSupply.freeplay(linked.seed, linked.settings, entries), undefined, linked.settings)),
+      () => {
+        screen = 'start';
+        offline();
+      },
+    );
+  }
 
   onMount(() => {
+    // the first game shouldn't have to wait for it
+    withCatalogue().catch(() => {});
     const clock = setInterval(() => (now = Date.now()), 1000);
     const back = () => {
       screen = 'start';
@@ -137,13 +169,13 @@
     streak={progress.streak}
     current={currentStreak(progress.streak, today)}
     lapsed={lapsed(progress.streak, today)}
-    onplay={() => openPuzzle('daily', today)}
+    onplay={() => void openPuzzle('daily', today)}
     onarchive={() => go('archive')}
     onfreeplay={() => (choosingRules = true)}
     onbackup={() => (backingUp = true)}
   />
 {:else if screen === 'archive'}
-  <Archive {today} {progress} onplay={(n) => openPuzzle('archive', n)} onback={home} />
+  <Archive {today} {progress} onplay={(n) => void openPuzzle('archive', n)} onback={home} />
 {:else if session && screen === 'game'}
   {#key session}
     <Game
@@ -169,7 +201,7 @@
       {unsaved}
       {now}
       ontoast={showToast}
-      onplay={() => openFreeplay(randomSeed(), session!.freeplay!)}
+      onplay={() => void openFreeplay(randomSeed(), session!.freeplay!)}
       onrules={() => (choosingRules = true)}
       onarchive={() => (screen = 'archive')}
       onhome={home}

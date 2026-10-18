@@ -1,15 +1,16 @@
-import type { CatalogueEntry } from '../data/catalogue';
+import type { CatalogueEntry, ModelRef } from '../data/catalogue';
 import type { Plan } from './generate';
-import { hullPoints, scaled } from './shapes';
 
 export interface Item {
   id: string;
   name: string;
+  /** For the tile until its picture is drawn. */
   color: string;
   /** Real weight, which only counts once the scale is unlocked. */
   kg: number;
-  /** Hull points in physics units. */
-  points: Float32Array;
+  model: ModelRef;
+  /** Length, height and width in physics units: the model's unit cube is stretched to this along x, y and z. */
+  size: [x: number, y: number, z: number];
 }
 
 export interface Round {
@@ -24,12 +25,13 @@ export interface Round {
 /** Turns a generated plan into objects at the round's physics scale. */
 export function buildRound(plan: Plan): Round {
   const k = 1 / plan.panMetres;
-  const item = (e: CatalogueEntry): Item => ({
-    id: e.id,
-    name: e.name,
-    color: e.color,
-    kg: e.weightKg,
-    points: scaled(hullPoints(e.shape, e.dimensionsM), k),
+  const item = ({ id, name, weightKg, model, dimensionsM: { l, w, h } }: CatalogueEntry): Item => ({
+    id,
+    name,
+    color: model.color,
+    kg: weightKg,
+    model,
+    size: [l * k, h * k, w * k],
   });
   return {
     unitsPerMetre: k,

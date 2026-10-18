@@ -8,8 +8,8 @@ export interface WorldOptions {
 
 export interface BodySpec {
   id: number;
-  /** Convex hull points, centred on the body origin. */
-  points: Float32Array;
+  /** Convex hull points in the body's own frame; several hulls for a concave object. */
+  hulls: Float32Array[];
   pos: Vec3;
   quat: Quat;
 }

@@ -148,6 +148,26 @@ export class PhysicsWorld {
     return shape;
   }
 
+  /** Hulls that already sit in the body's frame, so none of them is moved. */
+  private compoundShape(hulls: Float32Array[]): InstanceType<Jolt['Shape']> {
+    const J = this.J;
+    const compound = new J.StaticCompoundShapeSettings();
+    const offset = new J.Vec3(0, 0, 0);
+    const identity = new J.Quat(0, 0, 0, 1);
+    const parts = hulls.map((points) => {
+      const hull = this.hullShape(points);
+      compound.AddShapeShape(offset, identity, hull, 0);
+      return hull;
+    });
+    J.destroy(offset);
+    J.destroy(identity);
+    const shape = compound.Create().Get();
+    shape.AddRef();
+    J.destroy(compound);
+    for (const hull of parts) hull.Release();
+    return shape;
+  }
+
   private createPan(side: 1 | -1): Body {
     const J = this.J;
     const compound = new J.StaticCompoundShapeSettings();
@@ -189,9 +209,9 @@ export class PhysicsWorld {
     return pan;
   }
 
-  add({ id, points, pos, quat }: BodySpec): void {
+  add({ id, hulls, pos, quat }: BodySpec): void {
     if (this.bodies.has(id)) this.remove(id);
-    const shape = this.hullShape(points);
+    const shape = hulls.length === 1 ? this.hullShape(hulls[0]!) : this.compoundShape(hulls);
     const body = this.createBody(shape, pos, quat, this.J.EMotionType_Dynamic, LAYER_MOVING, {
       mass: STANDARD_MASS,
       ccd: true,
