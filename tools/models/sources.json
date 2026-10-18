@@ -1,0 +1,497 @@
+{
+  "alpaca": {
+    "polypizza": "bCVFD48i2l"
+  },
+  "ambulance": {
+    "kenney": "car-kit",
+    "name": "ambulance"
+  },
+  "apple": {
+    "kenney": "food-kit",
+    "name": "apple"
+  },
+  "avocado": {
+    "kenney": "food-kit",
+    "name": "avocado"
+  },
+  "banana": {
+    "kenney": "food-kit",
+    "name": "banana"
+  },
+  "barrel": {
+    "kenney": "survival-kit",
+    "name": "barrel",
+    "recolor": {
+      "#e07b6a": "#b5652e",
+      "#c9463d": "#7d5b44",
+      "#8fb1d4": "#565b5c"
+    }
+  },
+  "bathtub": {
+    "kenney": "furniture-kit",
+    "name": "bathtub",
+    "collider": "compound"
+  },
+  "bison": {
+    "polypizza": "9sTrha-TxdS"
+  },
+  "black-rhino": {
+    "polypizza": "7XutktqrTj_"
+  },
+  "bookcase-open": {
+    "kenney": "furniture-kit",
+    "name": "bookcaseOpen",
+    "collider": "compound"
+  },
+  "bottle-ketchup": {
+    "kenney": "food-kit",
+    "name": "bottle-ketchup"
+  },
+  "bowling-pin": {
+    "polypizza": "92eI1h_UJpU"
+  },
+  "brown-bear": {
+    "polypizza": "0PXWfxfb0Hu"
+  },
+  "bucket": {
+    "kenney": "survival-kit",
+    "name": "bucket"
+  },
+  "bull": {
+    "polypizza": "a8PIIYwF7r"
+  },
+  "burger": {
+    "kenney": "food-kit",
+    "name": "burger"
+  },
+  "cabbage": {
+    "kenney": "food-kit",
+    "name": "cabbage"
+  },
+  "camel": {
+    "polypizza": "7XeLogrxLad"
+  },
+  "cardboard-box-closed": {
+    "kenney": "furniture-kit",
+    "name": "cardboardBoxClosed"
+  },
+  "carrot": {
+    "kenney": "food-kit",
+    "name": "carrot"
+  },
+  "carton": {
+    "kenney": "food-kit",
+    "name": "carton"
+  },
+  "cat": {
+    "polypizza": "6dM1J6f6pm9"
+  },
+  "cauliflower": {
+    "kenney": "food-kit",
+    "name": "cauliflower"
+  },
+  "chair-desk": {
+    "kenney": "furniture-kit",
+    "name": "chairDesk",
+    "collider": "compound"
+  },
+  "cheese": {
+    "kenney": "food-kit",
+    "name": "cheese"
+  },
+  "coconut": {
+    "kenney": "food-kit",
+    "name": "coconut"
+  },
+  "computer-keyboard": {
+    "kenney": "furniture-kit",
+    "name": "computerKeyboard"
+  },
+  "computer-mouse": {
+    "kenney": "furniture-kit",
+    "name": "computerMouse"
+  },
+  "computer-screen": {
+    "kenney": "furniture-kit",
+    "name": "computerScreen"
+  },
+  "cone": {
+    "kenney": "car-kit",
+    "name": "cone"
+  },
+  "container": {
+    "polypizza": "vzzCNUB6Zn"
+  },
+  "crocodile": {
+    "polypizza": "2an6E2WjW3z"
+  },
+  "croissant": {
+    "kenney": "food-kit",
+    "name": "croissant",
+    "recolor": {
+      "#e07b6a": "#d49a3a"
+    }
+  },
+  "delivery": {
+    "kenney": "car-kit",
+    "name": "delivery"
+  },
+  "donkey": {
+    "polypizza": "qmX6nhnvp7"
+  },
+  "donut": {
+    "kenney": "food-kit",
+    "name": "donut"
+  },
+  "dryer": {
+    "kenney": "furniture-kit",
+    "name": "dryer"
+  },
+  "dumbbell": {
+    "polypizza": "PW9q10xh5g"
+  },
+  "egg": {
+    "kenney": "food-kit",
+    "name": "egg"
+  },
+  "electric-guitar": {
+    "polypizza": "5Fp8gpomrb"
+  },
+  "elephant": {
+    "polypizza": "a27MA0rXyyj"
+  },
+  "euro-pallet": {
+    "polypizza": "J6bhnc2wFP",
+    "recolor": {
+      "#e07b6a": "#bfa58a",
+      "#b5652e": "#a8977b"
+    }
+  },
+  "firetruck": {
+    "kenney": "car-kit",
+    "name": "firetruck"
+  },
+  "fox": {
+    "polypizza": "Bc97C66HKi"
+  },
+  "frying-pan": {
+    "kenney": "food-kit",
+    "name": "frying-pan"
+  },
+  "garbage-truck": {
+    "kenney": "car-kit",
+    "name": "garbage-truck"
+  },
+  "giraffe": {
+    "polypizza": "80w8kwQU0QH"
+  },
+  "gorilla": {
+    "polypizza": "bmfQ1j9CeO2"
+  },
+  "hatchback-sports": {
+    "kenney": "car-kit",
+    "name": "hatchback-sports"
+  },
+  "hippo": {
+    "polypizza": "4HNi8dZMdZa"
+  },
+  "holstein": {
+    "polypizza": "5XSc2Fka3F",
+    "recolor": {
+      "#c7c9c4": "#f4ede1"
+    }
+  },
+  "honey": {
+    "kenney": "food-kit",
+    "name": "honey"
+  },
+  "husky": {
+    "polypizza": "wcWiuEqwzq"
+  },
+  "kangaroo": {
+    "polypizza": "7BiPR-oOGgX"
+  },
+  "kettle": {
+    "polypizza": "vhYEWaQZvT"
+  },
+  "kettlebell": {
+    "polypizza": "08Gs4e3L1N8"
+  },
+  "kitchen-coffee-machine": {
+    "kenney": "furniture-kit",
+    "name": "kitchenCoffeeMachine"
+  },
+  "kitchen-fridge": {
+    "kenney": "furniture-kit",
+    "name": "kitchenFridge"
+  },
+  "kitchen-fridge-large": {
+    "kenney": "furniture-kit",
+    "name": "kitchenFridgeLarge"
+  },
+  "kitchen-microwave": {
+    "kenney": "furniture-kit",
+    "name": "kitchenMicrowave"
+  },
+  "kitchen-stove": {
+    "kenney": "furniture-kit",
+    "name": "kitchenStove"
+  },
+  "labrador": {
+    "polypizza": "baWJfMjFFC2"
+  },
+  "laptop": {
+    "kenney": "furniture-kit",
+    "name": "laptop"
+  },
+  "lawn-mower": {
+    "polypizza": "1pdSPagFCub"
+  },
+  "lemon": {
+    "kenney": "food-kit",
+    "name": "lemon"
+  },
+  "lion": {
+    "polypizza": "3XAJojWxSWz"
+  },
+  "loaf": {
+    "kenney": "food-kit",
+    "name": "loaf",
+    "recolor": {
+      "#e07b6a": "#d49a3a"
+    }
+  },
+  "lounge-chair": {
+    "kenney": "furniture-kit",
+    "name": "loungeChair",
+    "collider": "compound"
+  },
+  "lounge-sofa": {
+    "kenney": "furniture-kit",
+    "name": "loungeSofa",
+    "collider": "compound"
+  },
+  "man": {
+    "polypizza": "HMnuH5geEG"
+  },
+  "motorbike": {
+    "polypizza": "dse64pqMKAR"
+  },
+  "onion": {
+    "kenney": "food-kit",
+    "name": "onion"
+  },
+  "orange": {
+    "kenney": "food-kit",
+    "name": "orange"
+  },
+  "ostrich": {
+    "polypizza": "1LtIviy4khn"
+  },
+  "panda": {
+    "polypizza": "2T6A0o4Kq2h"
+  },
+  "pear": {
+    "kenney": "food-kit",
+    "name": "pear"
+  },
+  "pig": {
+    "polypizza": "TNvG3QUFlp"
+  },
+  "pillow": {
+    "kenney": "furniture-kit",
+    "name": "pillow"
+  },
+  "pinball": {
+    "kenney": "mini-arcade",
+    "name": "pinball"
+  },
+  "pineapple": {
+    "kenney": "food-kit",
+    "name": "pineapple"
+  },
+  "polar-bear": {
+    "polypizza": "4knUstaaX5C",
+    "recolor": {
+      "#6f604b": "#f4ede1",
+      "#a8977b": "#f4ede1",
+      "#b5652e": "#f4ede1",
+      "#d49a3a": "#f4ede1",
+      "#565b5c": "#d9cdb8",
+      "#3d342a": "#d9cdb8",
+      "#7d5b44": "#d9cdb8",
+      "#2b3f66": "#1f1b17"
+    }
+  },
+  "pumpkin": {
+    "kenney": "food-kit",
+    "name": "pumpkin"
+  },
+  "race": {
+    "kenney": "car-kit",
+    "name": "race"
+  },
+  "racehorse": {
+    "polypizza": "qvTrSG9pZF"
+  },
+  "radio": {
+    "kenney": "furniture-kit",
+    "name": "radio"
+  },
+  "red-deer": {
+    "polypizza": "T6Cs7tmMHJ"
+  },
+  "reindeer": {
+    "polypizza": "T6Cs7tmMHJ",
+    "recolor": {
+      "#7d5b44": "#a8977b",
+      "#a8977b": "#d9cdb8",
+      "#8c3b2a": "#6f604b",
+      "#b5652e": "#a8977b"
+    }
+  },
+  "safe": {
+    "polypizza": "N4egHD2Vms"
+  },
+  "scooter": {
+    "polypizza": "eHdEFPwUfCt"
+  },
+  "sedan": {
+    "kenney": "car-kit",
+    "name": "sedan"
+  },
+  "sedan-sports": {
+    "kenney": "car-kit",
+    "name": "sedan-sports"
+  },
+  "sheep": {
+    "polypizza": "C39AUXUUes"
+  },
+  "shire-horse": {
+    "polypizza": "F8HAAcLeBL"
+  },
+  "shopping-basket": {
+    "kenney": "mini-market",
+    "name": "shopping-basket"
+  },
+  "shopping-cart": {
+    "kenney": "mini-market",
+    "name": "shopping-cart",
+    "collider": "compound"
+  },
+  "skateboard": {
+    "polypizza": "TyiZbm5TNL"
+  },
+  "soda-can": {
+    "kenney": "food-kit",
+    "name": "soda-can"
+  },
+  "strawberry": {
+    "kenney": "food-kit",
+    "name": "strawberry"
+  },
+  "suv": {
+    "kenney": "car-kit",
+    "name": "suv"
+  },
+  "suv-luxury": {
+    "kenney": "car-kit",
+    "name": "suv-luxury"
+  },
+  "taxi": {
+    "kenney": "car-kit",
+    "name": "taxi"
+  },
+  "television-modern": {
+    "kenney": "furniture-kit",
+    "name": "televisionModern"
+  },
+  "tiger": {
+    "polypizza": "5A3w06FXUup"
+  },
+  "toaster": {
+    "kenney": "furniture-kit",
+    "name": "toaster"
+  },
+  "tomato": {
+    "kenney": "food-kit",
+    "name": "tomato"
+  },
+  "tool-axe": {
+    "kenney": "survival-kit",
+    "name": "tool-axe",
+    "roll": [
+      90,
+      0
+    ]
+  },
+  "touring-motorbike": {
+    "polypizza": "5_MTCnqfUTr"
+  },
+  "tractor": {
+    "kenney": "car-kit",
+    "name": "tractor"
+  },
+  "truck": {
+    "kenney": "car-kit",
+    "name": "truck"
+  },
+  "upright-piano": {
+    "polypizza": "1YoE664mJTd",
+    "collider": "compound"
+  },
+  "van": {
+    "kenney": "car-kit",
+    "name": "van"
+  },
+  "vending-machine": {
+    "kenney": "mini-arcade",
+    "name": "vending-machine"
+  },
+  "walrus": {
+    "polypizza": "2ivrvruGzxc"
+  },
+  "washer": {
+    "kenney": "furniture-kit",
+    "name": "washer"
+  },
+  "watering-can": {
+    "polypizza": "b2R90QehIt"
+  },
+  "watermelon": {
+    "kenney": "food-kit",
+    "name": "watermelon"
+  },
+  "wheelbarrow": {
+    "polypizza": "6XpEkgDXwkU",
+    "collider": "compound"
+  },
+  "white-rhino": {
+    "polypizza": "11qk1uy0YGH"
+  },
+  "wine-red": {
+    "kenney": "food-kit",
+    "name": "wine-red"
+  },
+  "wolf": {
+    "polypizza": "P1gU3Qkr9r"
+  },
+  "woman": {
+    "polypizza": "jpKRgGDxhk"
+  },
+  "workbench-anvil": {
+    "kenney": "survival-kit",
+    "name": "workbench-anvil",
+    "drop": [
+      "#e07b6a",
+      "#b5652e",
+      "#b39ad1"
+    ],
+    "recolor": {
+      "#8fb1d4": "#565b5c"
+    }
+  },
+  "zebra": {
+    "polypizza": "iclPBR6SBZ"
+  }
+}
