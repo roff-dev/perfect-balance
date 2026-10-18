@@ -40,6 +40,8 @@
   class="sheet"
   class:put-back={placing.putBack}
   class:carrying={placing.carrying !== undefined}
+  class:unavailable={placing.failed}
+  inert={placing.failed}
   bind:this={element}
   aria-label="Things to weigh"
   style:--sink="{sink.current}px"
@@ -124,6 +126,12 @@
 </section>
 
 <style>
+  /* a round that wouldn't load leaves Retry as the only thing to do */
+  .unavailable > * {
+    opacity: 0.4;
+    filter: grayscale(1);
+  }
+
   .sheet {
     --tile-w: 76px;
     --tile-h: 88px;

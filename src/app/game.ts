@@ -71,6 +71,8 @@ export interface PlacingState {
   result: Result | undefined;
   /** Objects left out of this round because their models wouldn't load. */
   missing: string[];
+  /** The round being loaded, which is ahead of `round` until it opens. */
+  opening: number;
   /** The round's models wouldn't load, and it can't be played without them. */
   failed: boolean;
 }
@@ -785,6 +787,7 @@ export class Game implements GestureTarget {
       phase: this.phase,
       result: this.phase === 'result' ? this.result : undefined,
       missing: this.missing,
+      opening: this.opening,
       failed: this.failed,
     };
     const key = JSON.stringify(state);

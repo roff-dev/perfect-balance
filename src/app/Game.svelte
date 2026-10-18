@@ -31,7 +31,7 @@
   let view = $state<View>('overview');
   let sheet = $state<HTMLElement>();
   let game: Game | undefined;
-  let placing = $state<PlacingState>({ ready: false, round: resumed.length, onPan: {}, panCount: 0, floor: [], full: false, carrying: undefined, putBack: false, phase: 'intro', result: undefined, missing: [], failed: false });
+  let placing = $state<PlacingState>({ ready: false, round: resumed.length, onPan: {}, panCount: 0, floor: [], full: false, carrying: undefined, putBack: false, phase: 'intro', result: undefined, missing: [], opening: resumed.length, failed: false });
   let results = $state<Result[]>([...resumed]);
   const round = $derived(rounds.at(placing.round));
   // an object that wouldn't load is left out of the round
@@ -128,8 +128,9 @@
           {/each}
         {/if}
       </p>
-      {#key placing.round}
-        <h1 class="prompt">{round.prompt.name}</h1>
+      <!-- a round that won't load is named, rather than the one before it -->
+      {#key placing.failed ? placing.opening : placing.round}
+        <h1 class="prompt">{rounds.at(placing.failed ? placing.opening : placing.round).prompt.name}</h1>
       {/key}
       {#if rules}
         <p class="rules">{rules}</p>
