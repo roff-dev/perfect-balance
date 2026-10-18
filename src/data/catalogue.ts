@@ -34,6 +34,7 @@ export interface Source {
   quote: string;
 }
 
+/** What the game needs of an entry. */
 export interface CatalogueEntry {
   id: string;
   /** Descriptive enough to picture: "Bag of cement", not "Cement". */
@@ -41,18 +42,7 @@ export interface CatalogueEntry {
   /** Exactly what was weighed: a model, breed, rule or pack size. */
   variant: string;
   weightKg: number;
-  variance?: { minKg: number; maxKg: number; basis: string };
-  source: Source;
-  secondary: { url: string; title: string; valueKg: number; quote: string }[];
-  /** The arithmetic, when the weight is worked out from sourced parts (contents × density + container). */
-  derived?: string;
-  /** Only high-confidence weights can be prompts. */
-  confidence: 'high' | 'medium' | 'low';
   dimensionsM: Dimensions;
-  category: string;
-  tags: string[];
-  /** 3: everyone can picture it; 2: familiar, but its weight is a surprise; 1: niche. */
-  familiarity: 1 | 2 | 3;
   canBePrompt: boolean;
   canBeInventory: boolean;
   sizeContradiction?: SizeContradiction;
@@ -64,7 +54,22 @@ export interface CatalogueEntry {
   addedIn: number;
 }
 
-/** The catalogue is large, so it loads separately from the rest of the game. */
+/** An entry as kept in catalogue.json, with the research behind its weight. */
+export interface SourcedEntry extends CatalogueEntry {
+  variance?: { minKg: number; maxKg: number; basis: string };
+  source: Source;
+  secondary: { url: string; title: string; valueKg: number; quote: string }[];
+  /** The arithmetic, when the weight is worked out from sourced parts (contents × density + container). */
+  derived?: string;
+  /** Only high-confidence weights can be prompts. */
+  confidence: 'high' | 'medium' | 'low';
+  category: string;
+  tags: string[];
+  /** 3: everyone can picture it; 2: familiar, but its weight is a surprise; 1: niche. */
+  familiarity: 1 | 2 | 3;
+}
+
+/** The catalogue loads separately from the rest of the game, without the research (see vite.config.ts). */
 export function loadCatalogue(): Promise<readonly CatalogueEntry[]> {
-  return import('./catalogue.json').then((m) => m.default as unknown as CatalogueEntry[]);
+  return import('virtual:catalogue').then((m) => m.default);
 }
