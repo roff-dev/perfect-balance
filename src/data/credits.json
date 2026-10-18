@@ -1,0 +1,1055 @@
+{
+  "alpaca": {
+    "title": "Alpaca",
+    "author": "Quaternius",
+    "licence": "CC0 1.0",
+    "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "source": "https://poly.pizza/m/bCVFD48i2l",
+    "downloaded": "2026-10-17",
+    "changes": "recoloured to the shared palette, rescaled, simplified"
+  },
+  "ambulance": {
+    "title": "ambulance",
+    "author": "Kenney",
+    "licence": "CC0 1.0",
+    "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "source": "https://kenney.nl/assets/car-kit",
+    "downloaded": "2026-10-17",
+    "changes": "recoloured to the shared palette, rescaled, simplified"
+  },
+  "apple": {
+    "title": "apple",
+    "author": "Kenney",
+    "licence": "CC0 1.0",
+    "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "source": "https://kenney.nl/assets/food-kit",
+    "downloaded": "2026-10-17",
+    "changes": "recoloured to the shared palette, rescaled"
+  },
+  "avocado": {
+    "title": "avocado",
+    "author": "Kenney",
+    "licence": "CC0 1.0",
+    "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "source": "https://kenney.nl/assets/food-kit",
+    "downloaded": "2026-10-17",
+    "changes": "recoloured to the shared palette, rescaled"
+  },
+  "banana": {
+    "title": "banana",
+    "author": "Kenney",
+    "licence": "CC0 1.0",
+    "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "source": "https://kenney.nl/assets/food-kit",
+    "downloaded": "2026-10-17",
+    "changes": "recoloured to the shared palette, rescaled"
+  },
+  "barrel": {
+    "title": "barrel",
+    "author": "Kenney",
+    "licence": "CC0 1.0",
+    "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "source": "https://kenney.nl/assets/survival-kit",
+    "downloaded": "2026-10-17",
+    "changes": "recoloured to the shared palette, rescaled"
+  },
+  "bison": {
+    "title": "Bison",
+    "author": "Poly by Google",
+    "licence": "CC-BY 3.0",
+    "licenceUrl": "https://creativecommons.org/licenses/by/3.0/",
+    "source": "https://poly.pizza/m/9sTrha-TxdS",
+    "downloaded": "2026-10-17",
+    "changes": "recoloured to the shared palette, rescaled"
+  },
+  "black-rhino": {
+    "title": "Rhinoceros",
+    "author": "Poly by Google",
+    "licence": "CC-BY 3.0",
+    "licenceUrl": "https://creativecommons.org/licenses/by/3.0/",
+    "source": "https://poly.pizza/m/7XutktqrTj_",
+    "downloaded": "2026-10-17",
+    "changes": "recoloured to the shared palette, rescaled"
+  },
+  "bookcase-open": {
+    "title": "bookcaseOpen",
+    "author": "Kenney",
+    "licence": "CC0 1.0",
+    "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "source": "https://kenney.nl/assets/furniture-kit",
+    "downloaded": "2026-10-17",
+    "changes": "recoloured to the shared palette, rescaled"
+  },
+  "bottle-ketchup": {
+    "title": "bottle-ketchup",
+    "author": "Kenney",
+    "licence": "CC0 1.0",
+    "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "source": "https://kenney.nl/assets/food-kit",
+    "downloaded": "2026-10-17",
+    "changes": "recoloured to the shared palette, rescaled"
+  },
+  "bowling-pin": {
+    "title": "Bowling pin",
+    "author": "Poly by Google",
+    "licence": "CC-BY 3.0",
+    "licenceUrl": "https://creativecommons.org/licenses/by/3.0/",
+    "source": "https://poly.pizza/m/92eI1h_UJpU",
+    "downloaded": "2026-10-17",
+    "changes": "recoloured to the shared palette, rescaled"
+  },
+  "brown-bear": {
+    "title": "Bear",
+    "author": "Poly by Google",
+    "licence": "CC-BY 3.0",
+    "licenceUrl": "https://creativecommons.org/licenses/by/3.0/",
+    "source": "https://poly.pizza/m/0PXWfxfb0Hu",
+    "downloaded": "2026-10-17",
+    "changes": "recoloured to the shared palette, rescaled"
+  },
+  "bucket": {
+    "title": "bucket",
+    "author": "Kenney",
+    "licence": "CC0 1.0",
+    "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "source": "https://kenney.nl/assets/survival-kit",
+    "downloaded": "2026-10-17",
+    "changes": "recoloured to the shared palette, rescaled"
+  },
+  "bull": {
+    "title": "Bull",
+    "author": "Quaternius",
+    "licence": "CC0 1.0",
+    "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "source": "https://poly.pizza/m/a8PIIYwF7r",
+    "downloaded": "2026-10-17",
+    "changes": "recoloured to the shared palette, rescaled, simplified"
+  },
+  "burger": {
+    "title": "burger",
+    "author": "Kenney",
+    "licence": "CC0 1.0",
+    "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "source": "https://kenney.nl/assets/food-kit",
+    "downloaded": "2026-10-17",
+    "changes": "recoloured to the shared palette, rescaled"
+  },
+  "cabbage": {
+    "title": "cabbage",
+    "author": "Kenney",
+    "licence": "CC0 1.0",
+    "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "source": "https://kenney.nl/assets/food-kit",
+    "downloaded": "2026-10-17",
+    "changes": "recoloured to the shared palette, rescaled"
+  },
+  "camel": {
+    "title": "Camel",
+    "author": "Poly by Google",
+    "licence": "CC-BY 3.0",
+    "licenceUrl": "https://creativecommons.org/licenses/by/3.0/",
+    "source": "https://poly.pizza/m/7XeLogrxLad",
+    "downloaded": "2026-10-17",
+    "changes": "recoloured to the shared palette, rescaled"
+  },
+  "cardboard-box-closed": {
+    "title": "cardboardBoxClosed",
+    "author": "Kenney",
+    "licence": "CC0 1.0",
+    "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "source": "https://kenney.nl/assets/furniture-kit",
+    "downloaded": "2026-10-17",
+    "changes": "recoloured to the shared palette, rescaled"
+  },
+  "carrot": {
+    "title": "carrot",
+    "author": "Kenney",
+    "licence": "CC0 1.0",
+    "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "source": "https://kenney.nl/assets/food-kit",
+    "downloaded": "2026-10-17",
+    "changes": "recoloured to the shared palette, rescaled"
+  },
+  "carton": {
+    "title": "carton",
+    "author": "Kenney",
+    "licence": "CC0 1.0",
+    "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "source": "https://kenney.nl/assets/food-kit",
+    "downloaded": "2026-10-17",
+    "changes": "recoloured to the shared palette, rescaled"
+  },
+  "cat": {
+    "title": "Cat",
+    "author": "Poly by Google",
+    "licence": "CC-BY 3.0",
+    "licenceUrl": "https://creativecommons.org/licenses/by/3.0/",
+    "source": "https://poly.pizza/m/6dM1J6f6pm9",
+    "downloaded": "2026-10-17",
+    "changes": "recoloured to the shared palette, rescaled"
+  },
+  "cauliflower": {
+    "title": "cauliflower",
+    "author": "Kenney",
+    "licence": "CC0 1.0",
+    "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "source": "https://kenney.nl/assets/food-kit",
+    "downloaded": "2026-10-17",
+    "changes": "recoloured to the shared palette, rescaled"
+  },
+  "chair-desk": {
+    "title": "chairDesk",
+    "author": "Kenney",
+    "licence": "CC0 1.0",
+    "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "source": "https://kenney.nl/assets/furniture-kit",
+    "downloaded": "2026-10-17",
+    "changes": "recoloured to the shared palette, rescaled"
+  },
+  "cheese": {
+    "title": "cheese",
+    "author": "Kenney",
+    "licence": "CC0 1.0",
+    "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "source": "https://kenney.nl/assets/food-kit",
+    "downloaded": "2026-10-17",
+    "changes": "recoloured to the shared palette, rescaled"
+  },
+  "coconut": {
+    "title": "coconut",
+    "author": "Kenney",
+    "licence": "CC0 1.0",
+    "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "source": "https://kenney.nl/assets/food-kit",
+    "downloaded": "2026-10-17",
+    "changes": "recoloured to the shared palette, rescaled"
+  },
+  "computer-keyboard": {
+    "title": "computerKeyboard",
+    "author": "Kenney",
+    "licence": "CC0 1.0",
+    "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "source": "https://kenney.nl/assets/furniture-kit",
+    "downloaded": "2026-10-17",
+    "changes": "recoloured to the shared palette, rescaled"
+  },
+  "computer-mouse": {
+    "title": "computerMouse",
+    "author": "Kenney",
+    "licence": "CC0 1.0",
+    "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "source": "https://kenney.nl/assets/furniture-kit",
+    "downloaded": "2026-10-17",
+    "changes": "recoloured to the shared palette, rescaled"
+  },
+  "computer-screen": {
+    "title": "computerScreen",
+    "author": "Kenney",
+    "licence": "CC0 1.0",
+    "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "source": "https://kenney.nl/assets/furniture-kit",
+    "downloaded": "2026-10-17",
+    "changes": "recoloured to the shared palette, rescaled"
+  },
+  "cone": {
+    "title": "cone",
+    "author": "Kenney",
+    "licence": "CC0 1.0",
+    "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "source": "https://kenney.nl/assets/car-kit",
+    "downloaded": "2026-10-17",
+    "changes": "recoloured to the shared palette, rescaled"
+  },
+  "container": {
+    "title": "Container Red",
+    "author": "Quaternius",
+    "licence": "CC0 1.0",
+    "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "source": "https://poly.pizza/m/vzzCNUB6Zn",
+    "downloaded": "2026-10-17",
+    "changes": "recoloured to the shared palette, rescaled"
+  },
+  "crocodile": {
+    "title": "Crocodile",
+    "author": "Poly by Google",
+    "licence": "CC-BY 3.0",
+    "licenceUrl": "https://creativecommons.org/licenses/by/3.0/",
+    "source": "https://poly.pizza/m/2an6E2WjW3z",
+    "downloaded": "2026-10-17",
+    "changes": "recoloured to the shared palette, rescaled"
+  },
+  "croissant": {
+    "title": "croissant",
+    "author": "Kenney",
+    "licence": "CC0 1.0",
+    "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "source": "https://kenney.nl/assets/food-kit",
+    "downloaded": "2026-10-17",
+    "changes": "recoloured to the shared palette, rescaled"
+  },
+  "delivery": {
+    "title": "delivery",
+    "author": "Kenney",
+    "licence": "CC0 1.0",
+    "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "source": "https://kenney.nl/assets/car-kit",
+    "downloaded": "2026-10-17",
+    "changes": "recoloured to the shared palette, rescaled, simplified"
+  },
+  "donkey": {
+    "title": "Donkey",
+    "author": "Quaternius",
+    "licence": "CC0 1.0",
+    "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "source": "https://poly.pizza/m/qmX6nhnvp7",
+    "downloaded": "2026-10-17",
+    "changes": "recoloured to the shared palette, rescaled, simplified"
+  },
+  "donut": {
+    "title": "donut",
+    "author": "Kenney",
+    "licence": "CC0 1.0",
+    "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "source": "https://kenney.nl/assets/food-kit",
+    "downloaded": "2026-10-17",
+    "changes": "recoloured to the shared palette, rescaled"
+  },
+  "dryer": {
+    "title": "dryer",
+    "author": "Kenney",
+    "licence": "CC0 1.0",
+    "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "source": "https://kenney.nl/assets/furniture-kit",
+    "downloaded": "2026-10-17",
+    "changes": "recoloured to the shared palette, rescaled"
+  },
+  "dumbbell": {
+    "title": "Dumbbell",
+    "author": "CreativeTrio",
+    "licence": "CC0 1.0",
+    "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "source": "https://poly.pizza/m/PW9q10xh5g",
+    "downloaded": "2026-10-17",
+    "changes": "recoloured to the shared palette, rescaled"
+  },
+  "egg": {
+    "title": "egg",
+    "author": "Kenney",
+    "licence": "CC0 1.0",
+    "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "source": "https://kenney.nl/assets/food-kit",
+    "downloaded": "2026-10-17",
+    "changes": "recoloured to the shared palette, rescaled"
+  },
+  "electric-guitar": {
+    "title": "Guitar",
+    "author": "Quaternius",
+    "licence": "CC0 1.0",
+    "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "source": "https://poly.pizza/m/5Fp8gpomrb",
+    "downloaded": "2026-10-17",
+    "changes": "recoloured to the shared palette, rescaled, simplified"
+  },
+  "elephant": {
+    "title": "Elephant",
+    "author": "Poly by Google",
+    "licence": "CC-BY 3.0",
+    "licenceUrl": "https://creativecommons.org/licenses/by/3.0/",
+    "source": "https://poly.pizza/m/a27MA0rXyyj",
+    "downloaded": "2026-10-17",
+    "changes": "recoloured to the shared palette, rescaled"
+  },
+  "euro-pallet": {
+    "title": "Pallet",
+    "author": "Kenney",
+    "licence": "CC0 1.0",
+    "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "source": "https://poly.pizza/m/J6bhnc2wFP",
+    "downloaded": "2026-10-17",
+    "changes": "recoloured to the shared palette, rescaled"
+  },
+  "fox": {
+    "title": "Fox",
+    "author": "Quaternius",
+    "licence": "CC0 1.0",
+    "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "source": "https://poly.pizza/m/Bc97C66HKi",
+    "downloaded": "2026-10-17",
+    "changes": "recoloured to the shared palette, rescaled, simplified"
+  },
+  "frying-pan": {
+    "title": "frying-pan",
+    "author": "Kenney",
+    "licence": "CC0 1.0",
+    "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "source": "https://kenney.nl/assets/food-kit",
+    "downloaded": "2026-10-17",
+    "changes": "recoloured to the shared palette, rescaled"
+  },
+  "giraffe": {
+    "title": "Giraffe",
+    "author": "Poly by Google",
+    "licence": "CC-BY 3.0",
+    "licenceUrl": "https://creativecommons.org/licenses/by/3.0/",
+    "source": "https://poly.pizza/m/80w8kwQU0QH",
+    "downloaded": "2026-10-17",
+    "changes": "recoloured to the shared palette, rescaled"
+  },
+  "gorilla": {
+    "title": "Gorilla",
+    "author": "Poly by Google",
+    "licence": "CC-BY 3.0",
+    "licenceUrl": "https://creativecommons.org/licenses/by/3.0/",
+    "source": "https://poly.pizza/m/bmfQ1j9CeO2",
+    "downloaded": "2026-10-17",
+    "changes": "recoloured to the shared palette, rescaled"
+  },
+  "hatchback-sports": {
+    "title": "hatchback-sports",
+    "author": "Kenney",
+    "licence": "CC0 1.0",
+    "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "source": "https://kenney.nl/assets/car-kit",
+    "downloaded": "2026-10-17",
+    "changes": "recoloured to the shared palette, rescaled, simplified"
+  },
+  "hippo": {
+    "title": "Hippopotamus",
+    "author": "Poly by Google",
+    "licence": "CC-BY 3.0",
+    "licenceUrl": "https://creativecommons.org/licenses/by/3.0/",
+    "source": "https://poly.pizza/m/4HNi8dZMdZa",
+    "downloaded": "2026-10-17",
+    "changes": "recoloured to the shared palette, rescaled"
+  },
+  "holstein": {
+    "title": "Cow",
+    "author": "Quaternius",
+    "licence": "CC0 1.0",
+    "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "source": "https://poly.pizza/m/5XSc2Fka3F",
+    "downloaded": "2026-10-17",
+    "changes": "recoloured to the shared palette, rescaled"
+  },
+  "honey": {
+    "title": "honey",
+    "author": "Kenney",
+    "licence": "CC0 1.0",
+    "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "source": "https://kenney.nl/assets/food-kit",
+    "downloaded": "2026-10-17",
+    "changes": "recoloured to the shared palette, rescaled"
+  },
+  "husky": {
+    "title": "Husky",
+    "author": "Quaternius",
+    "licence": "CC0 1.0",
+    "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "source": "https://poly.pizza/m/wcWiuEqwzq",
+    "downloaded": "2026-10-17",
+    "changes": "recoloured to the shared palette, rescaled, simplified"
+  },
+  "kangaroo": {
+    "title": "Kangaroo",
+    "author": "Poly by Google",
+    "licence": "CC-BY 3.0",
+    "licenceUrl": "https://creativecommons.org/licenses/by/3.0/",
+    "source": "https://poly.pizza/m/7BiPR-oOGgX",
+    "downloaded": "2026-10-17",
+    "changes": "recoloured to the shared palette, rescaled"
+  },
+  "kettle": {
+    "title": "Kettle",
+    "author": "Isa Lousberg",
+    "licence": "CC0 1.0",
+    "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "source": "https://poly.pizza/m/vhYEWaQZvT",
+    "downloaded": "2026-10-17",
+    "changes": "recoloured to the shared palette, rescaled"
+  },
+  "kettlebell": {
+    "title": "Kettlebell",
+    "author": "Poly by Google",
+    "licence": "CC-BY 3.0",
+    "licenceUrl": "https://creativecommons.org/licenses/by/3.0/",
+    "source": "https://poly.pizza/m/08Gs4e3L1N8",
+    "downloaded": "2026-10-17",
+    "changes": "recoloured to the shared palette, rescaled"
+  },
+  "kitchen-coffee-machine": {
+    "title": "kitchenCoffeeMachine",
+    "author": "Kenney",
+    "licence": "CC0 1.0",
+    "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "source": "https://kenney.nl/assets/furniture-kit",
+    "downloaded": "2026-10-17",
+    "changes": "recoloured to the shared palette, rescaled"
+  },
+  "kitchen-fridge": {
+    "title": "kitchenFridge",
+    "author": "Kenney",
+    "licence": "CC0 1.0",
+    "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "source": "https://kenney.nl/assets/furniture-kit",
+    "downloaded": "2026-10-17",
+    "changes": "recoloured to the shared palette, rescaled"
+  },
+  "kitchen-fridge-large": {
+    "title": "kitchenFridgeLarge",
+    "author": "Kenney",
+    "licence": "CC0 1.0",
+    "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "source": "https://kenney.nl/assets/furniture-kit",
+    "downloaded": "2026-10-17",
+    "changes": "recoloured to the shared palette, rescaled"
+  },
+  "kitchen-microwave": {
+    "title": "kitchenMicrowave",
+    "author": "Kenney",
+    "licence": "CC0 1.0",
+    "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "source": "https://kenney.nl/assets/furniture-kit",
+    "downloaded": "2026-10-17",
+    "changes": "recoloured to the shared palette, rescaled"
+  },
+  "kitchen-stove": {
+    "title": "kitchenStove",
+    "author": "Kenney",
+    "licence": "CC0 1.0",
+    "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "source": "https://kenney.nl/assets/furniture-kit",
+    "downloaded": "2026-10-17",
+    "changes": "recoloured to the shared palette, rescaled"
+  },
+  "labrador": {
+    "title": "Dog",
+    "author": "Poly by Google",
+    "licence": "CC-BY 3.0",
+    "licenceUrl": "https://creativecommons.org/licenses/by/3.0/",
+    "source": "https://poly.pizza/m/baWJfMjFFC2",
+    "downloaded": "2026-10-17",
+    "changes": "recoloured to the shared palette, rescaled"
+  },
+  "laptop": {
+    "title": "laptop",
+    "author": "Kenney",
+    "licence": "CC0 1.0",
+    "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "source": "https://kenney.nl/assets/furniture-kit",
+    "downloaded": "2026-10-17",
+    "changes": "recoloured to the shared palette, rescaled"
+  },
+  "lemon": {
+    "title": "lemon",
+    "author": "Kenney",
+    "licence": "CC0 1.0",
+    "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "source": "https://kenney.nl/assets/food-kit",
+    "downloaded": "2026-10-17",
+    "changes": "recoloured to the shared palette, rescaled"
+  },
+  "lion": {
+    "title": "Lion",
+    "author": "Poly by Google",
+    "licence": "CC-BY 3.0",
+    "licenceUrl": "https://creativecommons.org/licenses/by/3.0/",
+    "source": "https://poly.pizza/m/3XAJojWxSWz",
+    "downloaded": "2026-10-17",
+    "changes": "recoloured to the shared palette, rescaled"
+  },
+  "loaf": {
+    "title": "loaf",
+    "author": "Kenney",
+    "licence": "CC0 1.0",
+    "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "source": "https://kenney.nl/assets/food-kit",
+    "downloaded": "2026-10-17",
+    "changes": "recoloured to the shared palette, rescaled"
+  },
+  "lounge-chair": {
+    "title": "loungeChair",
+    "author": "Kenney",
+    "licence": "CC0 1.0",
+    "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "source": "https://kenney.nl/assets/furniture-kit",
+    "downloaded": "2026-10-17",
+    "changes": "recoloured to the shared palette, rescaled"
+  },
+  "lounge-sofa": {
+    "title": "loungeSofa",
+    "author": "Kenney",
+    "licence": "CC0 1.0",
+    "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "source": "https://kenney.nl/assets/furniture-kit",
+    "downloaded": "2026-10-17",
+    "changes": "recoloured to the shared palette, rescaled"
+  },
+  "man": {
+    "title": "Man",
+    "author": "Quaternius",
+    "licence": "CC0 1.0",
+    "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "source": "https://poly.pizza/m/HMnuH5geEG",
+    "downloaded": "2026-10-17",
+    "changes": "recoloured to the shared palette, rescaled, simplified"
+  },
+  "motorbike": {
+    "title": "Motorcycle",
+    "author": "Poly by Google",
+    "licence": "CC-BY 3.0",
+    "licenceUrl": "https://creativecommons.org/licenses/by/3.0/",
+    "source": "https://poly.pizza/m/dse64pqMKAR",
+    "downloaded": "2026-10-17",
+    "changes": "recoloured to the shared palette, rescaled, simplified"
+  },
+  "onion": {
+    "title": "onion",
+    "author": "Kenney",
+    "licence": "CC0 1.0",
+    "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "source": "https://kenney.nl/assets/food-kit",
+    "downloaded": "2026-10-17",
+    "changes": "recoloured to the shared palette, rescaled"
+  },
+  "orange": {
+    "title": "orange",
+    "author": "Kenney",
+    "licence": "CC0 1.0",
+    "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "source": "https://kenney.nl/assets/food-kit",
+    "downloaded": "2026-10-17",
+    "changes": "recoloured to the shared palette, rescaled"
+  },
+  "ostrich": {
+    "title": "Ostrich",
+    "author": "Poly by Google",
+    "licence": "CC-BY 3.0",
+    "licenceUrl": "https://creativecommons.org/licenses/by/3.0/",
+    "source": "https://poly.pizza/m/1LtIviy4khn",
+    "downloaded": "2026-10-17",
+    "changes": "recoloured to the shared palette, rescaled"
+  },
+  "panda": {
+    "title": "Panda",
+    "author": "Poly by Google",
+    "licence": "CC-BY 3.0",
+    "licenceUrl": "https://creativecommons.org/licenses/by/3.0/",
+    "source": "https://poly.pizza/m/2T6A0o4Kq2h",
+    "downloaded": "2026-10-17",
+    "changes": "recoloured to the shared palette, rescaled"
+  },
+  "pear": {
+    "title": "pear",
+    "author": "Kenney",
+    "licence": "CC0 1.0",
+    "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "source": "https://kenney.nl/assets/food-kit",
+    "downloaded": "2026-10-17",
+    "changes": "recoloured to the shared palette, rescaled"
+  },
+  "pig": {
+    "title": "Pig",
+    "author": "Quaternius",
+    "licence": "CC0 1.0",
+    "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "source": "https://poly.pizza/m/TNvG3QUFlp",
+    "downloaded": "2026-10-17",
+    "changes": "recoloured to the shared palette, rescaled"
+  },
+  "pillow": {
+    "title": "pillow",
+    "author": "Kenney",
+    "licence": "CC0 1.0",
+    "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "source": "https://kenney.nl/assets/furniture-kit",
+    "downloaded": "2026-10-17",
+    "changes": "recoloured to the shared palette, rescaled"
+  },
+  "pinball": {
+    "title": "pinball",
+    "author": "Kenney",
+    "licence": "CC0 1.0",
+    "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "source": "https://kenney.nl/assets/mini-arcade",
+    "downloaded": "2026-10-17",
+    "changes": "recoloured to the shared palette, rescaled"
+  },
+  "pineapple": {
+    "title": "pineapple",
+    "author": "Kenney",
+    "licence": "CC0 1.0",
+    "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "source": "https://kenney.nl/assets/food-kit",
+    "downloaded": "2026-10-17",
+    "changes": "recoloured to the shared palette, rescaled"
+  },
+  "polar-bear": {
+    "title": "Bear",
+    "author": "Poly by Google",
+    "licence": "CC-BY 3.0",
+    "licenceUrl": "https://creativecommons.org/licenses/by/3.0/",
+    "source": "https://poly.pizza/m/4knUstaaX5C",
+    "downloaded": "2026-10-17",
+    "changes": "recoloured to the shared palette, rescaled"
+  },
+  "race": {
+    "title": "race",
+    "author": "Kenney",
+    "licence": "CC0 1.0",
+    "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "source": "https://kenney.nl/assets/car-kit",
+    "downloaded": "2026-10-17",
+    "changes": "recoloured to the shared palette, rescaled, simplified"
+  },
+  "racehorse": {
+    "title": "Horse",
+    "author": "Quaternius",
+    "licence": "CC0 1.0",
+    "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "source": "https://poly.pizza/m/qvTrSG9pZF",
+    "downloaded": "2026-10-17",
+    "changes": "recoloured to the shared palette, rescaled, simplified"
+  },
+  "radio": {
+    "title": "radio",
+    "author": "Kenney",
+    "licence": "CC0 1.0",
+    "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "source": "https://kenney.nl/assets/furniture-kit",
+    "downloaded": "2026-10-17",
+    "changes": "recoloured to the shared palette, rescaled"
+  },
+  "red-deer": {
+    "title": "Deer",
+    "author": "Quaternius",
+    "licence": "CC0 1.0",
+    "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "source": "https://poly.pizza/m/T6Cs7tmMHJ",
+    "downloaded": "2026-10-17",
+    "changes": "recoloured to the shared palette, rescaled, simplified"
+  },
+  "reindeer": {
+    "title": "Deer",
+    "author": "Quaternius",
+    "licence": "CC0 1.0",
+    "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "source": "https://poly.pizza/m/T6Cs7tmMHJ",
+    "downloaded": "2026-10-17",
+    "changes": "recoloured to the shared palette, rescaled, simplified"
+  },
+  "safe": {
+    "title": "Safe",
+    "author": "CreativeTrio",
+    "licence": "CC0 1.0",
+    "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "source": "https://poly.pizza/m/N4egHD2Vms",
+    "downloaded": "2026-10-17",
+    "changes": "recoloured to the shared palette, rescaled"
+  },
+  "scooter": {
+    "title": "Scooter",
+    "author": "Poly by Google",
+    "licence": "CC-BY 3.0",
+    "licenceUrl": "https://creativecommons.org/licenses/by/3.0/",
+    "source": "https://poly.pizza/m/eHdEFPwUfCt",
+    "downloaded": "2026-10-17",
+    "changes": "recoloured to the shared palette, rescaled"
+  },
+  "sedan": {
+    "title": "sedan",
+    "author": "Kenney",
+    "licence": "CC0 1.0",
+    "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "source": "https://kenney.nl/assets/car-kit",
+    "downloaded": "2026-10-17",
+    "changes": "recoloured to the shared palette, rescaled, simplified"
+  },
+  "sedan-sports": {
+    "title": "sedan-sports",
+    "author": "Kenney",
+    "licence": "CC0 1.0",
+    "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "source": "https://kenney.nl/assets/car-kit",
+    "downloaded": "2026-10-17",
+    "changes": "recoloured to the shared palette, rescaled, simplified"
+  },
+  "sheep": {
+    "title": "Sheep",
+    "author": "Quaternius",
+    "licence": "CC0 1.0",
+    "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "source": "https://poly.pizza/m/C39AUXUUes",
+    "downloaded": "2026-10-17",
+    "changes": "recoloured to the shared palette, rescaled"
+  },
+  "shire-horse": {
+    "title": "Horse",
+    "author": "Quaternius",
+    "licence": "CC0 1.0",
+    "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "source": "https://poly.pizza/m/F8HAAcLeBL",
+    "downloaded": "2026-10-17",
+    "changes": "recoloured to the shared palette, rescaled"
+  },
+  "shopping-basket": {
+    "title": "shopping-basket",
+    "author": "Kenney",
+    "licence": "CC0 1.0",
+    "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "source": "https://kenney.nl/assets/mini-market",
+    "downloaded": "2026-10-17",
+    "changes": "recoloured to the shared palette, rescaled"
+  },
+  "shopping-cart": {
+    "title": "shopping-cart",
+    "author": "Kenney",
+    "licence": "CC0 1.0",
+    "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "source": "https://kenney.nl/assets/mini-market",
+    "downloaded": "2026-10-17",
+    "changes": "recoloured to the shared palette, rescaled"
+  },
+  "skateboard": {
+    "title": "Skateboard",
+    "author": "Kenney",
+    "licence": "CC0 1.0",
+    "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "source": "https://poly.pizza/m/TyiZbm5TNL",
+    "downloaded": "2026-10-17",
+    "changes": "recoloured to the shared palette, rescaled"
+  },
+  "soda-can": {
+    "title": "soda-can",
+    "author": "Kenney",
+    "licence": "CC0 1.0",
+    "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "source": "https://kenney.nl/assets/food-kit",
+    "downloaded": "2026-10-17",
+    "changes": "recoloured to the shared palette, rescaled"
+  },
+  "strawberry": {
+    "title": "strawberry",
+    "author": "Kenney",
+    "licence": "CC0 1.0",
+    "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "source": "https://kenney.nl/assets/food-kit",
+    "downloaded": "2026-10-17",
+    "changes": "recoloured to the shared palette, rescaled"
+  },
+  "suv": {
+    "title": "suv",
+    "author": "Kenney",
+    "licence": "CC0 1.0",
+    "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "source": "https://kenney.nl/assets/car-kit",
+    "downloaded": "2026-10-17",
+    "changes": "recoloured to the shared palette, rescaled, simplified"
+  },
+  "suv-luxury": {
+    "title": "suv-luxury",
+    "author": "Kenney",
+    "licence": "CC0 1.0",
+    "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "source": "https://kenney.nl/assets/car-kit",
+    "downloaded": "2026-10-17",
+    "changes": "recoloured to the shared palette, rescaled, simplified"
+  },
+  "taxi": {
+    "title": "taxi",
+    "author": "Kenney",
+    "licence": "CC0 1.0",
+    "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "source": "https://kenney.nl/assets/car-kit",
+    "downloaded": "2026-10-17",
+    "changes": "recoloured to the shared palette, rescaled, simplified"
+  },
+  "television-modern": {
+    "title": "televisionModern",
+    "author": "Kenney",
+    "licence": "CC0 1.0",
+    "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "source": "https://kenney.nl/assets/furniture-kit",
+    "downloaded": "2026-10-17",
+    "changes": "recoloured to the shared palette, rescaled"
+  },
+  "tiger": {
+    "title": "Tiger",
+    "author": "Poly by Google",
+    "licence": "CC-BY 3.0",
+    "licenceUrl": "https://creativecommons.org/licenses/by/3.0/",
+    "source": "https://poly.pizza/m/5A3w06FXUup",
+    "downloaded": "2026-10-17",
+    "changes": "recoloured to the shared palette, rescaled"
+  },
+  "toaster": {
+    "title": "toaster",
+    "author": "Kenney",
+    "licence": "CC0 1.0",
+    "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "source": "https://kenney.nl/assets/furniture-kit",
+    "downloaded": "2026-10-17",
+    "changes": "recoloured to the shared palette, rescaled"
+  },
+  "tomato": {
+    "title": "tomato",
+    "author": "Kenney",
+    "licence": "CC0 1.0",
+    "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "source": "https://kenney.nl/assets/food-kit",
+    "downloaded": "2026-10-17",
+    "changes": "recoloured to the shared palette, rescaled"
+  },
+  "tool-axe": {
+    "title": "tool-axe",
+    "author": "Kenney",
+    "licence": "CC0 1.0",
+    "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "source": "https://kenney.nl/assets/survival-kit",
+    "downloaded": "2026-10-17",
+    "changes": "recoloured to the shared palette, rescaled"
+  },
+  "touring-motorbike": {
+    "title": "Motorcycle",
+    "author": "Poly by Google",
+    "licence": "CC-BY 3.0",
+    "licenceUrl": "https://creativecommons.org/licenses/by/3.0/",
+    "source": "https://poly.pizza/m/5_MTCnqfUTr",
+    "downloaded": "2026-10-17",
+    "changes": "recoloured to the shared palette, rescaled, simplified"
+  },
+  "tractor": {
+    "title": "tractor",
+    "author": "Kenney",
+    "licence": "CC0 1.0",
+    "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "source": "https://kenney.nl/assets/car-kit",
+    "downloaded": "2026-10-17",
+    "changes": "recoloured to the shared palette, rescaled, simplified"
+  },
+  "truck": {
+    "title": "truck",
+    "author": "Kenney",
+    "licence": "CC0 1.0",
+    "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "source": "https://kenney.nl/assets/car-kit",
+    "downloaded": "2026-10-17",
+    "changes": "recoloured to the shared palette, rescaled, simplified"
+  },
+  "upright-piano": {
+    "title": "Piano",
+    "author": "Poly by Google",
+    "licence": "CC-BY 3.0",
+    "licenceUrl": "https://creativecommons.org/licenses/by/3.0/",
+    "source": "https://poly.pizza/m/1YoE664mJTd",
+    "downloaded": "2026-10-17",
+    "changes": "recoloured to the shared palette, rescaled"
+  },
+  "van": {
+    "title": "van",
+    "author": "Kenney",
+    "licence": "CC0 1.0",
+    "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "source": "https://kenney.nl/assets/car-kit",
+    "downloaded": "2026-10-17",
+    "changes": "recoloured to the shared palette, rescaled, simplified"
+  },
+  "vending-machine": {
+    "title": "vending-machine",
+    "author": "Kenney",
+    "licence": "CC0 1.0",
+    "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "source": "https://kenney.nl/assets/mini-arcade",
+    "downloaded": "2026-10-17",
+    "changes": "recoloured to the shared palette, rescaled"
+  },
+  "walrus": {
+    "title": "Walrus",
+    "author": "Poly by Google",
+    "licence": "CC-BY 3.0",
+    "licenceUrl": "https://creativecommons.org/licenses/by/3.0/",
+    "source": "https://poly.pizza/m/2ivrvruGzxc",
+    "downloaded": "2026-10-17",
+    "changes": "recoloured to the shared palette, rescaled"
+  },
+  "washer": {
+    "title": "washer",
+    "author": "Kenney",
+    "licence": "CC0 1.0",
+    "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "source": "https://kenney.nl/assets/furniture-kit",
+    "downloaded": "2026-10-17",
+    "changes": "recoloured to the shared palette, rescaled"
+  },
+  "watering-can": {
+    "title": "Watering Can",
+    "author": "CreativeTrio",
+    "licence": "CC0 1.0",
+    "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "source": "https://poly.pizza/m/b2R90QehIt",
+    "downloaded": "2026-10-17",
+    "changes": "recoloured to the shared palette, rescaled"
+  },
+  "watermelon": {
+    "title": "watermelon",
+    "author": "Kenney",
+    "licence": "CC0 1.0",
+    "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "source": "https://kenney.nl/assets/food-kit",
+    "downloaded": "2026-10-17",
+    "changes": "recoloured to the shared palette, rescaled"
+  },
+  "white-rhino": {
+    "title": "Rhinoceros",
+    "author": "Poly by Google",
+    "licence": "CC-BY 3.0",
+    "licenceUrl": "https://creativecommons.org/licenses/by/3.0/",
+    "source": "https://poly.pizza/m/11qk1uy0YGH",
+    "downloaded": "2026-10-17",
+    "changes": "recoloured to the shared palette, rescaled"
+  },
+  "wine-red": {
+    "title": "wine-red",
+    "author": "Kenney",
+    "licence": "CC0 1.0",
+    "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "source": "https://kenney.nl/assets/food-kit",
+    "downloaded": "2026-10-17",
+    "changes": "recoloured to the shared palette, rescaled"
+  },
+  "wolf": {
+    "title": "Wolf",
+    "author": "Quaternius",
+    "licence": "CC0 1.0",
+    "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "source": "https://poly.pizza/m/P1gU3Qkr9r",
+    "downloaded": "2026-10-17",
+    "changes": "recoloured to the shared palette, rescaled, simplified"
+  },
+  "woman": {
+    "title": "Woman Casual",
+    "author": "Quaternius",
+    "licence": "CC0 1.0",
+    "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "source": "https://poly.pizza/m/jpKRgGDxhk",
+    "downloaded": "2026-10-17",
+    "changes": "recoloured to the shared palette, rescaled, simplified"
+  },
+  "workbench-anvil": {
+    "title": "workbench-anvil",
+    "author": "Kenney",
+    "licence": "CC0 1.0",
+    "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "source": "https://kenney.nl/assets/survival-kit",
+    "downloaded": "2026-10-17",
+    "changes": "recoloured to the shared palette, rescaled"
+  },
+  "zebra": {
+    "title": "Zebra",
+    "author": "Quaternius",
+    "licence": "CC0 1.0",
+    "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "source": "https://poly.pizza/m/iclPBR6SBZ",
+    "downloaded": "2026-10-17",
+    "changes": "recoloured to the shared palette, rescaled"
+  }
+}
