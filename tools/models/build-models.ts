@@ -207,7 +207,7 @@ function readPrimitive(node: GltfNode, primitive: Primitive, out: Triangles): vo
       const [u, w] = uv ? uv.getElement(i, t) : [0, 0];
       const sample = colorAt(u!, w!);
       const tint = vertexColor ? vertexColor.getElement(i, c) : [1, 1, 1];
-      for (let ch = 0; ch < 3; ch++) rgb[ch] += (sample[ch]! * tint[ch]!) / 3;
+      for (let ch = 0; ch < 3; ch++) rgb[ch] = rgb[ch]! + (sample[ch]! * tint[ch]!) / 3;
     }
     out.colors.push(snap(rgb));
   }
@@ -401,7 +401,7 @@ async function main(): Promise<void> {
   // a full build starts the credits afresh, so a model taken out of the manifest loses its credit too
   const credits: Record<string, Credit> = only.length && fs.existsSync(CREDITS) ? JSON.parse(fs.readFileSync(CREDITS, 'utf8')) : {};
 
-  for (const [file, source] of Object.entries(manifest as Record<string, Source>)) {
+  for (const [file, source] of Object.entries(manifest as unknown as Record<string, Source>)) {
     if (only.length && !only.includes(file)) continue;
     const raw = source.kenney ? path.join(downloads, 'kenney', source.kenney, `${source.name}.glb`) : path.join(downloads, 'polypizza', `${source.polypizza}.glb`);
     const tris = read(await reader.read(raw));
