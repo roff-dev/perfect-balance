@@ -225,4 +225,35 @@
       margin-top: var(--space-2);
     }
   }
+
+  /* the smallest landscape phones */
+  @media (orientation: landscape) and (max-height: 400px) {
+    .start {
+      padding-top: max(var(--space-3), env(safe-area-inset-top));
+      padding-bottom: max(var(--space-3), env(safe-area-inset-bottom));
+    }
+
+    .date {
+      margin-top: var(--space-1);
+    }
+
+    .lede {
+      margin-bottom: var(--space-2);
+    }
+  }
+
+  /* short portrait phones keep everything on one screen with a smaller drawing */
+  @media (orientation: portrait) and (max-height: 640px) {
+    .start {
+      gap: var(--space-3);
+    }
+
+    .sketch {
+      width: min(60%, 12rem);
+    }
+
+    h1 {
+      font-size: 48px;
+    }
+  }
 </style>
