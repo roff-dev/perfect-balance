@@ -147,7 +147,7 @@
 
 <svelte:window onkeydown={keydown} />
 
-<div class="layout" class:carrying={placing.carrying !== undefined} class:slip-open={slipOpen}>
+<main class="layout" class:carrying={placing.carrying !== undefined} class:slip-open={slipOpen}>
   <div class="stage" bind:this={stage}>
     <div class="canvas" bind:this={host} role="img" aria-label={description}></div>
 
@@ -281,7 +281,7 @@
   />
 
   <div class="visually-hidden" aria-live="polite">{announcement}</div>
-</div>
+</main>
 
 <style>
   .layout {
