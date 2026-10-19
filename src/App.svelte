@@ -7,6 +7,8 @@
   import type GameScreen from './app/Game.svelte';
   import type { Limits } from './app/game';
   import Start from './app/Start.svelte';
+  import { canPlay } from './app/support';
+  import Unsupported from './app/Unsupported.svelte';
   import { loadCatalogue, type CatalogueEntry } from './data/catalogue';
   import { CONFIG } from './game/config';
   import { dailyGame, puzzleNumber } from './game/daily';
@@ -15,7 +17,7 @@
   import { currentStreak, lapsed, load, record, save, type Mode, type Progress } from './game/storage';
   import Toast from './ui/Toast.svelte';
 
-  type Screen = 'start' | 'archive' | 'game' | 'end';
+  type Screen = 'start' | 'archive' | 'game' | 'end' | 'unsupported';
 
   interface Session {
     /** A numbered puzzle; a freeplay game has none. */
@@ -128,6 +130,7 @@
 
   async function openPuzzle(mode: Mode, n: number): Promise<void> {
     if (starting) return;
+    if (!canPlay()) return go('unsupported');
     const entries = await ready().catch(() => undefined);
     if (entries) go(open(RoundSupply.of(dailyGame(n, entries)), { mode, n }));
     else offline();
@@ -136,6 +139,7 @@
   /** The address bar always holds the game's link, so it can be shared or reloaded. */
   async function openFreeplay(seed: number, settings: FreeplaySettings): Promise<void> {
     if (starting) return;
+    if (!canPlay()) return go('unsupported');
     const entries = await ready().catch(() => undefined);
     if (!entries) return offline();
     go(open(RoundSupply.freeplay(seed, settings, entries), undefined, settings));
@@ -166,7 +170,9 @@
   }
 
   const linked = linkedGame();
-  if (linked) {
+  if (linked && !canPlay()) {
+    screen = 'unsupported';
+  } else if (linked) {
     // shows nothing until the game is ready
     screen = 'game';
     ready().then(
@@ -228,12 +234,16 @@
       rules={session.freeplay ? describeRules(session.freeplay) : ''}
       played={session.played}
       onresult={saveRounds}
+      onrestart={(played) => (session = { ...session!, played })}
+      onunsupported={() => (screen = 'unsupported')}
       onfinish={(r) => {
         results = r;
         go('end');
       }}
     />
   {/key}
+{:else if screen === 'unsupported'}
+  <Unsupported onback={home} />
 {:else if session && screen === 'end'}
   {#key session}
     <End

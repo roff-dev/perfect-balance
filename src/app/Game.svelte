@@ -14,10 +14,14 @@
     /** Rounds already played, when a game is resumed. */
     played?: Result[];
     onresult?: (results: Result[]) => void;
+    /** After the physics has failed: starts the game again from the round it was on. */
+    onrestart?: (results: Result[]) => void;
+    /** The scene couldn't start, though the browser said it could draw 3D. */
+    onunsupported?: () => void;
     onfinish: (results: Result[]) => void;
   }
 
-  let { rounds, limits = DAILY_LIMITS, rules = '', played = [], onresult, onfinish }: Props = $props();
+  let { rounds, limits = DAILY_LIMITS, rules = '', played = [], onresult, onrestart, onunsupported, onfinish }: Props = $props();
 
   const ROTATE_STEP = Math.PI / 12;
   // a new game mounts a new screen, so only the first value matters
@@ -82,7 +86,13 @@
   }
 
   onMount(() => {
-    const g = new Game(host, () => sheet, rounds, resumed.length, limits);
+    let g: Game;
+    try {
+      g = new Game(host, () => sheet, rounds, resumed.length, limits);
+    } catch {
+      onunsupported?.();
+      return;
+    }
     g.onView = (v) => (view = v);
     g.onState = (s) => (placing = s);
     g.onAnnounce = (m) => void announce(m);
@@ -157,7 +167,16 @@
 
     <div class="foot" bind:this={foot}>
       {#if error}
-        <p class="status error" role="alert">Something slipped. Reload the page to set the scale up again.</p>
+        <div class="retry" role="alert">
+          <p class="status">Something slipped. Restart this round?</p>
+          <button type="button" onclick={() => onrestart?.($state.snapshot(results))}>
+            <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+              <path d="M15.5 7.5A7 7 0 1 0 19 13" />
+              <path d="M20 5.5v4.2h-4.2" />
+            </svg>
+            Restart
+          </button>
+        </div>
       {:else if placing.failed}
         <div class="retry" role="alert">
           <p class="status">Couldn't load this round — try again</p>
@@ -208,6 +227,7 @@
     onreturnall={() => game?.returnAll()}
     onlockin={() => game?.lockIn()}
     {last}
+    unavailable={placing.failed || error !== undefined}
     cap={limits.maxBodies < DAILY_LIMITS.maxBodies ? limits.maxBodies : undefined}
     onnext={() => (last ? onfinish(results) : game?.nextRound())}
   />
@@ -395,10 +415,6 @@
     line-height: 1.15;
     color: var(--ink-soft);
     pointer-events: none;
-  }
-
-  .error {
-    color: var(--heavy);
   }
 
   /* real bytes: the physics engine and the first round's models */

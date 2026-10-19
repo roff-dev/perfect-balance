@@ -18,10 +18,12 @@
     last: boolean;
     /** A freeplay item cap, which replaces the usual "pan's full" limit. */
     cap?: number;
+    /** Nothing here can be used: the round won't load, or the physics has failed. */
+    unavailable?: boolean;
     element?: HTMLElement;
   }
 
-  let { items, thumbs, placing, onreset, onreturnall, onlockin, onnext, last, cap, element = $bindable() }: Props = $props();
+  let { items, thumbs, placing, onreset, onreturnall, onlockin, onnext, last, cap, unavailable = false, element = $bindable() }: Props = $props();
 
   const sink = new Spring(0, { stiffness: 0.2, damping: 0.55 });
   $effect(() => {
@@ -40,8 +42,8 @@
   class="sheet"
   class:put-back={placing.putBack}
   class:carrying={placing.carrying !== undefined}
-  class:unavailable={placing.failed}
-  inert={placing.failed}
+  class:unavailable
+  inert={unavailable}
   bind:this={element}
   aria-label="Things to weigh"
   style:--sink="{sink.current}px"

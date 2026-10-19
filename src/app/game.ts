@@ -256,6 +256,7 @@ export class Game implements GestureTarget {
           },
           put: (itemId: string, x: number, y: number, z: number) => this.addBody(itemId, { pos: [x, y, z], quat: [0, 0, 0, 1] }),
           lockIn: () => this.lockIn(),
+          crash: () => this.physics.onError('A test crash'),
           round: () => ({
             index: this.index,
             prompt: { id: this.round.prompt.id, kg: this.round.prompt.kg },
