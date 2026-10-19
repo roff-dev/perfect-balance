@@ -10,7 +10,7 @@ const JOLT_WASM = new URL('./node_modules/jolt-physics/dist/jolt-physics.wasm.wa
 const MODELS = new URL('./src/assets/models/', import.meta.url);
 const CREDITS = new URL('./src/data/credits.json', import.meta.url);
 /** The pages beside the game, each its own HTML file with no script. */
-const PAGES = ['about', 'privacy', 'terms', 'credits'];
+const PAGES = ['about', 'privacy', 'terms', 'credits', '404'];
 
 /** `virtual:catalogue` is catalogue.json without the sources and quotes, which only the research needs. */
 function gameCatalogue(): Plugin {
