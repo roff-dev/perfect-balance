@@ -1,6 +1,10 @@
 /** Android's touch slop: movement under this is still a tap. */
 const DEAD_ZONE = 8;
 const ROTATE_STEP = Math.PI / 12;
+/** Keyboard cursor steps in pan radii: 5% of the pan's width, or 1% with Shift. */
+const CURSOR_STEP = 0.1;
+const CURSOR_FINE = 0.02;
+const ARROWS: Record<string, [number, number]> = { ArrowRight: [1, 0], ArrowLeft: [-1, 0], ArrowUp: [0, 1], ArrowDown: [0, -1] };
 
 export type CarrySource = { kind: 'item'; itemId: string } | { kind: 'floor'; itemId: string } | { kind: 'body'; id: number };
 
@@ -23,6 +27,13 @@ export interface GestureTarget {
   drop(aim: Aim): void;
   /** A body was tapped without being dragged, or the empty scene was (undefined). */
   tap(id: number | undefined): void;
+  /** Keyboard placement: picks up and holds it over the pan, moved by `moveCursor`. */
+  pickUpWithKeys(source: CarrySource): boolean;
+  readonly placingWithKeys: boolean;
+  /** By fractions of the pan's radius, right and up as seen on screen. */
+  moveCursor(right: number, up: number): void;
+  dropWithKeys(): void;
+  putBackWithKeys(): void;
 }
 
 type State =
@@ -172,6 +183,27 @@ export class Gestures {
 
   private key(e: KeyboardEvent): void {
     if (e.ctrlKey || e.metaKey || e.altKey) return;
+    const t = this.target;
+    if (t.placingWithKeys) {
+      const step = e.shiftKey ? CURSOR_FINE : CURSOR_STEP;
+      const move = ARROWS[e.key];
+      if (move) t.moveCursor(move[0] * step, move[1] * step);
+      else if (e.key === 'Enter' && !e.repeat) t.dropWithKeys();
+      else if (e.key === 'Escape') t.putBackWithKeys();
+      // a held object takes the arrows and Enter, so they don't scroll the strip or press the tile
+      if (move || e.key === 'Enter' || e.key === 'Escape') {
+        e.preventDefault();
+        return;
+      }
+    } else if (e.key === 'Enter' && !e.repeat && this.state.kind === 'idle') {
+      const tile = e.target instanceof Element ? e.target.closest<HTMLElement>('[data-item]') : null;
+      if (tile) {
+        const itemId = tile.dataset.item!;
+        t.pickUpWithKeys(tile.dataset.source === 'floor' ? { kind: 'floor', itemId } : { kind: 'item', itemId });
+        e.preventDefault();
+        return;
+      }
+    }
     const key = e.key.toLowerCase();
     if (key === 'q') this.target.rotate(ROTATE_STEP);
     else if (key === 'e') this.target.rotate(-ROTATE_STEP);

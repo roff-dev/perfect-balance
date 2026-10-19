@@ -34,6 +34,7 @@
     <h3>Handy to know</h3>
     <ul>
       <li>Tap something on your pan to turn it with the arrows. With a keyboard, <kbd>Q</kbd> and <kbd>E</kbd> turn it and <kbd>V</kbd> switches between the whole scale and a close-up.</li>
+      <li>No mouse? Press <kbd>Enter</kbd> on a tile to hold it over your pan, move it with the arrow keys (<kbd>Shift</kbd> for small steps), then <kbd>Enter</kbd> to drop it or <kbd>Esc</kbd> to put it back.</li>
       <li>The pencil opens notes and a calculator that converts between g, kg, tonnes, oz, lb and stone.</li>
       <li>Archive has every past puzzle. Freeplay lets you change the rules.</li>
     </ul>

@@ -20,6 +20,9 @@ const TOUCH_LIFT = 48;
 /** A body has to stay on (or off) the pan this long before it counts, so one sliding past the rim doesn't flicker. */
 const SETTLE_SECONDS = 0.3;
 const UP = new THREE.Vector3(0, 1, 0);
+const DOWN = new THREE.Vector3(0, -1, 0);
+/** The keyboard cursor stays this far in from the rim, as a fraction of the pan's radius. */
+const CURSOR_REACH = 0.8;
 const INK = '#1f1b17';
 /** Close-up distance limits, in pan diameters. */
 const CLOSE_MIN = 0.6;
@@ -155,6 +158,9 @@ export class Game implements GestureTarget {
   private ready = false;
   private carrying: { itemId: string; restore?: Pose } | undefined;
   private putBack = false;
+  /** Keyboard placement: where on the player's pan the held object is, in pan radii from its centre. */
+  private cursor: { x: number; z: number } | undefined;
+  private readonly flat = new THREE.Vector3();
   private selected: number | undefined;
   private lastSelection = '';
   private lastState = '';
@@ -537,9 +543,62 @@ export class Game implements GestureTarget {
   }
 
   drop(aim: Aim): void {
-    if (!this.carrying) return;
+    if (!this.carrying || this.cursor) return;
     this.carry(aim);
-    const { itemId } = this.carrying;
+    this.place();
+  }
+
+  /** Keyboard placement (§11): picks up a copy and holds it over the middle of the player's pan. */
+  pickUpWithKeys(source: CarrySource): boolean {
+    if (!this.pickUp(source)) return false;
+    this.cursor = { x: 0, z: 0 };
+    this.aimCursor();
+    const name = this.kind(this.carrying!.itemId).item.name;
+    this.onAnnounce(`Holding ${name} over your pan. Arrow keys move it, Q and E turn it, Enter drops it and Escape puts it back.`);
+    return true;
+  }
+
+  get placingWithKeys(): boolean {
+    return this.cursor !== undefined;
+  }
+
+  /**
+   * Moves the keyboard cursor by a fraction of the pan's radius. Right and up are as seen on
+   * screen, so the arrows still make sense after the camera has been turned.
+   */
+  moveCursor(right: number, up: number): void {
+    if (!this.cursor) return;
+    const back = this.stage.camera.getWorldDirection(this.flat).setY(0).normalize().negate();
+    // screen right is up × back; screen up, laid on the pan, points away from the camera
+    const x = this.cursor.x + right * back.z - up * back.x;
+    const z = this.cursor.z - right * back.x - up * back.z;
+    const length = Math.hypot(x, z);
+    const scale = length > CURSOR_REACH ? CURSOR_REACH / length : 1;
+    this.cursor = { x: x * scale, z: z * scale };
+    this.aimCursor();
+  }
+
+  dropWithKeys(): void {
+    if (this.cursor) this.place();
+  }
+
+  putBackWithKeys(): void {
+    if (!this.cursor) return;
+    this.putBack = true;
+    this.place();
+  }
+
+  /** Aims straight down at the cursor, onto the pan or whatever is already stacked there. */
+  private aimCursor(): void {
+    const pan = this.scale.pans[1];
+    const r = RIG.panRadius;
+    this.v.set(pan.position.x + this.cursor!.x * r, pan.position.y + 4, pan.position.z + this.cursor!.z * r);
+    this.ray.set(this.v, DOWN);
+    this.ghost.aim(this.ray.intersectObjects([pan, this.meshes.group], true)[0]?.point);
+  }
+
+  private place(): void {
+    const { itemId } = this.carrying!;
     const name = this.kind(itemId).item.name;
     if (this.putBack || !this.ghost.aiming) {
       this.onAnnounce(`Put back: ${name}.`);
@@ -586,6 +645,7 @@ export class Game implements GestureTarget {
     this.ghost.end();
     this.carrying = undefined;
     this.putBack = false;
+    this.cursor = undefined;
     this.canvas.style.cursor = '';
   }
 
@@ -721,6 +781,7 @@ export class Game implements GestureTarget {
       this.classify(snap);
       if (this.view === 'close') this.followPan();
     }
+    if (this.cursor) this.aimCursor();
     this.ghost.update(dt);
     this.emitSelection();
     this.emitState();
