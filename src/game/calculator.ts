@@ -179,8 +179,8 @@ export class Calculator {
   private back(): void {
     // the unit goes first: it's usually the last thing tapped
     if (this.typedUnit) this.typedUnit = undefined;
+    // an answer isn't being typed, so there's nothing to delete
     else if (this.typed) this.typed = this.typed.slice(0, -1);
-    else if (this.answer) this.answer = undefined;
     if (this.typed === '0') this.typed = '';
   }
 

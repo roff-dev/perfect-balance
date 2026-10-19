@@ -1,8 +1,10 @@
 <script lang="ts">
   import { onMount, tick, untrack } from 'svelte';
+  import { Calculator, type Key } from '../game/calculator';
   import type { Result } from '../game/judge';
   import type { RoundSupply } from '../game/freeplay';
   import InventorySheet from '../ui/InventorySheet.svelte';
+  import Slip from '../ui/Slip.svelte';
   import VerdictGlyph from '../ui/VerdictGlyph.svelte';
   import { DAILY_LIMITS, Game, type Limits, type PlacingState, type Selection, type View } from './game';
 
@@ -47,6 +49,32 @@
   let selection = $state<Selection | null>(null);
   let announcement = $state('');
   let error = $state<string | undefined>();
+
+  // the notes slip (§3.12): kept while it's closed, cleared by the next round
+  let notesButton = $state<HTMLButtonElement>();
+  let slipOpen = $state(false);
+  let notes = $state('');
+  const calculator = new Calculator();
+  let calculation = $state(calculator.display);
+  let notesRound = untrack(() => placing.round);
+
+  function press(key: Key): void {
+    calculator.press(key);
+    calculation = calculator.display;
+  }
+
+  function closeSlip(): void {
+    slipOpen = false;
+    notesButton?.focus();
+  }
+
+  $effect(() => {
+    if (placing.round === notesRound) return;
+    notesRound = placing.round;
+    notes = '';
+    calculator.reset();
+    calculation = calculator.display;
+  });
 
   const description = $derived.by(() => {
     const things = inventory
@@ -119,7 +147,7 @@
 
 <svelte:window onkeydown={keydown} />
 
-<div class="layout" class:carrying={placing.carrying !== undefined}>
+<div class="layout" class:carrying={placing.carrying !== undefined} class:slip-open={slipOpen}>
   <div class="stage" bind:this={stage}>
     <div class="canvas" bind:this={host} role="img" aria-label={description}></div>
 
@@ -147,10 +175,10 @@
       {/if}
     </header>
 
+    <div class="tools" bind:this={toggle}>
     <button
       type="button"
-      class="view"
-      bind:this={toggle}
+      class="pill view"
       aria-label={view === 'overview' ? 'Close-up of your pan' : 'Whole scale'}
       onclick={() => game?.toggleView()}
     >
@@ -164,6 +192,22 @@
       </svg>
       <span aria-hidden="true">{view === 'overview' ? 'Close up' : 'Whole scale'}</span>
     </button>
+    <button
+      type="button"
+      class="pill notes"
+      bind:this={notesButton}
+      aria-label="Notes and calculator"
+      aria-expanded={slipOpen}
+      aria-controls="slip"
+      onclick={() => (slipOpen ? closeSlip() : (slipOpen = true))}
+    >
+      <svg viewBox="0 0 20 20" width="20" height="20" aria-hidden="true">
+        <path d="M13.5 3.5l3 3-9 9H4.5v-3z" />
+        <path d="M11.5 5.5l3 3" />
+      </svg>
+      <span aria-hidden="true">Notes</span>
+    </button>
+    </div>
 
     <div class="foot" bind:this={foot}>
       {#if error}
@@ -217,6 +261,10 @@
       </div>
     {/if}
   </div>
+
+  {#if slipOpen}
+    <Slip bind:notes display={calculation} onpress={press} onclose={closeSlip} />
+  {/if}
 
   <InventorySheet
     items={inventory}
@@ -365,10 +413,17 @@
       0 0 18px var(--paper);
   }
 
-  .view {
+  .tools {
     position: absolute;
     top: max(var(--space-4), env(safe-area-inset-top));
     right: max(var(--space-4), env(safe-area-inset-right));
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: var(--space-2);
+  }
+
+  .pill {
     display: inline-flex;
     align-items: center;
     gap: var(--space-2);
@@ -384,12 +439,34 @@
     box-shadow: 0 6px 14px -10px rgb(31 27 23 / 0.45);
   }
 
-  .view:hover {
+  .pill:hover {
     border-color: var(--ink-soft);
   }
 
-  .view path,
-  .view circle {
+  /* an icon on its own until there's room for the word */
+  .notes {
+    justify-content: center;
+    width: var(--target);
+    padding: 0;
+  }
+
+  .notes span {
+    display: none;
+  }
+
+  .notes[aria-expanded='true'] {
+    border-color: var(--ink);
+    background: var(--ink);
+    color: var(--paper-raised);
+  }
+
+  /* on phones the slip takes the inventory's place while it's open */
+  .slip-open > :global(.sheet) {
+    display: none;
+  }
+
+  .pill path,
+  .pill circle {
     fill: none;
     stroke: currentColor;
     stroke-width: 1.8;
@@ -536,8 +613,12 @@
     }
 
     .top,
-    .view {
+    .tools {
       top: max(var(--space-3), env(safe-area-inset-top));
+    }
+
+    .slip-open {
+      grid-template-columns: minmax(0, 1fr) calc(220px + env(safe-area-inset-right));
     }
 
     .rounds {
@@ -565,9 +646,26 @@
       left: var(--space-6);
     }
 
-    .view {
+    .tools {
       top: var(--space-6);
       right: var(--space-6);
+    }
+
+    .notes {
+      width: auto;
+      padding: 0 var(--space-4) 0 var(--space-3);
+    }
+
+    .notes span {
+      display: inline;
+    }
+
+    .slip-open {
+      grid-template-columns: minmax(0, 1fr) 280px 320px;
+    }
+
+    .slip-open > :global(.sheet) {
+      display: flex;
     }
 
     .foot {
