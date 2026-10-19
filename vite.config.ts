@@ -9,6 +9,8 @@ const CATALOGUE = new URL('./src/data/catalogue.json', import.meta.url);
 const JOLT_WASM = new URL('./node_modules/jolt-physics/dist/jolt-physics.wasm.wasm', import.meta.url);
 const MODELS = new URL('./src/assets/models/', import.meta.url);
 const CREDITS = new URL('./src/data/credits.json', import.meta.url);
+/** Where the game is published, for canonical links, the social card and the sitemap. */
+const SITE = 'https://perfect-balance.kieronoates.workers.dev';
 /** The pages beside the game, each its own HTML file with no script. */
 const PAGES = ['about', 'privacy', 'terms', 'credits', '404'];
 
@@ -95,11 +97,45 @@ function creditsHtml(): string {
     .join('');
 }
 
+/**
+ * Each page's address and social card, from its own title and description. The 404 page has
+ * neither, as it isn't an address of its own.
+ */
+function shareTags(html: string, path: string): string {
+  const page = path.replace(/^\//, '').replace(/\.html$/, '');
+  if (page === '404') return '';
+  const url = `${SITE}/${page === 'index' ? '' : page}`;
+  const title = html.match(/<title>(.*?)<\/title>/)![1]!;
+  const description = html.match(/<meta name="description" content="(.*?)"/)![1]!;
+  return [
+    `<link rel="canonical" href="${url}" />`,
+    `<meta property="og:type" content="website" />`,
+    `<meta property="og:site_name" content="Perfect Balance" />`,
+    `<meta property="og:url" content="${url}" />`,
+    `<meta property="og:title" content="${title}" />`,
+    `<meta property="og:description" content="${description}" />`,
+    `<meta property="og:image" content="${SITE}/og.jpg" />`,
+    `<meta property="og:image:width" content="1200" />`,
+    `<meta property="og:image:height" content="630" />`,
+    `<meta property="og:image:alt" content="A brass balance scale with a stack of things on one pan, beside the words Perfect Balance." />`,
+    `<meta name="twitter:card" content="summary_large_image" />`,
+  ].join('\n    ');
+}
+
 /** The static pages: the shared footer and, on Credits, the model list, written in at build time. */
 function pages(): Plugin {
   return {
     name: 'pages',
-    transformIndexHtml: (html) => html.replace('<!--footer-->', footerHtml()).replace('<!--credits-->', creditsHtml()),
+    transformIndexHtml: (html, { path }) =>
+      html
+        .replace('<!--footer-->', footerHtml())
+        .replace('<!--credits-->', creditsHtml())
+        .replace('</head>', `  ${shareTags(html, path === '/' ? '/index.html' : path)}\n    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />\n  </head>`),
+    generateBundle() {
+      const urls = ['', ...PAGES.filter((p) => p !== '404')].map((p) => `  <url><loc>${SITE}/${p}</loc></url>`);
+      this.emitFile({ type: 'asset', fileName: 'sitemap.xml', source: `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.join('\n')}\n</urlset>\n` });
+      this.emitFile({ type: 'asset', fileName: 'robots.txt', source: `User-agent: *\nAllow: /\n\nSitemap: ${SITE}/sitemap.xml\n` });
+    },
   };
 }
 
