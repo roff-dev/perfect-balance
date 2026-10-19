@@ -134,6 +134,8 @@ export class ScaleModel {
       hook.position.set(x, 0, 0);
       this.beam.add(hook);
     }
+    // level on its pivot until the first physics pose arrives, so the scale is whole from the first frame
+    this.beam.position.set(...RIG.pivot);
     this.group.add(this.beam);
 
     this.pin = shadowed(new THREE.Mesh(facetedCylinder(0.012, 0.012, 0.18, 6), brassShade));
@@ -158,6 +160,7 @@ export class ScaleModel {
     this.chains.castShadow = true;
     this.chains.frustumCulled = false;
     this.group.add(this.chains);
+    this.updateChains();
   }
 
   /** What a carried object can be set down on. Not the beam or chains: nothing should be parked up there. */

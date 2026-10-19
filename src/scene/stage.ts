@@ -20,6 +20,8 @@ export interface Insets {
 
 export interface StageOptions {
   shadowMapSize: number;
+  /** Softness of the shadow edge; the low tier halves it to go with its smaller map. */
+  shadowRadius: number;
   maxPixelRatio: number;
 }
 
@@ -72,7 +74,7 @@ export class Stage {
     key.position.set(-2.2, 5, 3.2);
     key.castShadow = true;
     key.shadow.mapSize.set(options.shadowMapSize, options.shadowMapSize);
-    key.shadow.radius = 4;
+    key.shadow.radius = options.shadowRadius;
     key.shadow.bias = -0.0004;
     key.shadow.normalBias = 0.01;
     Object.assign(key.shadow.camera, { left: -2.6, right: 2.6, top: 3, bottom: -1.5, near: 1, far: 12 });

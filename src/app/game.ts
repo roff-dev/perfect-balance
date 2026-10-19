@@ -182,7 +182,7 @@ export class Game implements GestureTarget {
     private readonly limits: Limits = DAILY_LIMITS,
   ) {
     const lowEnd = (navigator.hardwareConcurrency ?? 8) <= 4;
-    this.stage = new Stage(host, { shadowMapSize: lowEnd ? 1024 : 2048, maxPixelRatio: lowEnd ? 1.5 : 2 });
+    this.stage = new Stage(host, { shadowMapSize: lowEnd ? 1024 : 2048, shadowRadius: lowEnd ? 2 : 4, maxPixelRatio: lowEnd ? 1.5 : 2 });
     this.selectionRing.visible = false;
     this.selectionRing.renderOrder = 1;
     this.stage.scene.add(this.scale.group, this.meshes.group, this.ghost.group, this.selectionRing);
@@ -257,6 +257,7 @@ export class Game implements GestureTarget {
           put: (itemId: string, x: number, y: number, z: number) => this.addBody(itemId, { pos: [x, y, z], quat: [0, 0, 0, 1] }),
           lockIn: () => this.lockIn(),
           crash: () => this.physics.onError('A test crash'),
+          stage: () => this.stage,
           round: () => ({
             index: this.index,
             prompt: { id: this.round.prompt.id, kg: this.round.prompt.kg },
