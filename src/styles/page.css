@@ -1,0 +1,159 @@
+/* The static pages (About, Privacy, Terms, Credits, 404): the game's type and paper, set for reading. */
+@import '@fontsource-variable/fraunces/soft.css';
+@import '@fontsource-variable/instrument-sans/index.css';
+@import './tokens.css';
+@import './base.css';
+
+.page {
+  display: flex;
+  flex-direction: column;
+  width: min(100%, 42rem);
+  min-height: 100svh;
+  margin: 0 auto;
+  padding: max(var(--space-4), env(safe-area-inset-top)) max(var(--space-4), env(safe-area-inset-right))
+    max(var(--space-5), env(safe-area-inset-bottom)) max(var(--space-4), env(safe-area-inset-left));
+  font-size: 17px;
+  line-height: 1.6;
+}
+
+/* the way back to the game, set as its name */
+.home {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--target);
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-variation-settings: var(--display-soft);
+  font-size: 20px;
+  text-decoration: none;
+}
+
+.home svg {
+  fill: none;
+  stroke: var(--brass);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.home:hover {
+  text-decoration: underline;
+  text-decoration-color: var(--brass);
+  text-underline-offset: 5px;
+}
+
+main {
+  flex: 1;
+  padding: var(--space-6) 0 var(--space-7);
+}
+
+h1 {
+  font-size: var(--text-title);
+  letter-spacing: -0.01em;
+}
+
+.lede {
+  margin: var(--space-3) 0 0;
+  font-family: var(--font-display);
+  font-variation-settings: var(--display-soft);
+  font-size: 22px;
+  line-height: 1.4;
+}
+
+h2 {
+  margin-top: var(--space-6);
+  color: var(--brass-ink);
+  font-size: 24px;
+}
+
+h3 {
+  margin-top: var(--space-5);
+  font-size: 20px;
+}
+
+p,
+li {
+  max-width: 62ch;
+}
+
+p {
+  margin: var(--space-3) 0 0;
+}
+
+main ul {
+  margin: var(--space-3) 0 0;
+  padding-left: 1.2em;
+}
+
+main li + li {
+  margin-top: var(--space-1);
+}
+
+main a {
+  color: var(--ink);
+  text-decoration: underline;
+  text-decoration-color: var(--brass);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 4px;
+}
+
+main a:hover {
+  text-decoration-color: var(--ink);
+}
+
+.updated {
+  margin-top: var(--space-6);
+  color: var(--ink-soft);
+  font-size: var(--text-small);
+}
+
+/* credits: a long list in columns */
+.licence {
+  margin-left: var(--space-2);
+  color: var(--ink-soft);
+  font-family: var(--font-ui);
+  font-size: var(--text-small);
+  font-variation-settings: normal;
+}
+
+.models {
+  columns: 2 12rem;
+  column-gap: var(--space-5);
+  padding-left: 0;
+  list-style: none;
+}
+
+.models li {
+  break-inside: avoid;
+  margin: 0;
+  padding: 6px 0;
+  font-size: 15px;
+  line-height: 1.4;
+}
+
+.changed {
+  display: block;
+  color: var(--ink-soft);
+  font-size: var(--text-small);
+}
+
+/* the 404's one way on */
+.action {
+  display: inline-flex;
+  align-items: center;
+  min-height: 52px;
+  margin-top: var(--space-5);
+  padding: 0 var(--space-6);
+  border-radius: var(--radius-control);
+  background: var(--enamel);
+  color: var(--on-enamel);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+main a.action {
+  color: var(--on-enamel);
+  text-decoration: none;
+}

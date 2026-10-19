@@ -1,6 +1,7 @@
 <script lang="ts">
   import { CONFIG } from '../game/config';
   import { countdown, msUntilNext, puzzleDate } from '../game/daily';
+  import { footerHtml } from './footer';
   import type { Played, Streak } from '../game/storage';
   import Sketch from '../ui/Sketch.svelte';
 
@@ -18,9 +19,10 @@
     onarchive: () => void;
     onfreeplay: () => void;
     onbackup: () => void;
+    onhowto: () => void;
   }
 
-  let { today, now, played, streak, current, lapsed, busy = false, onplay, onarchive, onfreeplay, onbackup }: Props = $props();
+  let { today, now, played, streak, current, lapsed, busy = false, onplay, onarchive, onfreeplay, onbackup, onhowto }: Props = $props();
 
   const date = $derived(puzzleDate(today).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' }));
   const action = $derived(
@@ -28,6 +30,7 @@
   );
 </script>
 
+<div class="screen">
 <main class="start">
   <div class="sketch"><Sketch /></div>
 
@@ -50,19 +53,37 @@
     <nav class="links">
       <button type="button" class="link" onclick={onarchive}>Archive</button>
       <button type="button" class="link" onclick={onfreeplay}>Freeplay</button>
+      <button type="button" class="link" onclick={onhowto}>How to play</button>
       <button type="button" class="link" onclick={onbackup}>Back up progress</button>
     </nav>
   </div>
 </main>
+<div class="footer">
+  {@html footerHtml()}
+</div>
+</div>
 
 <style>
+  .screen {
+    display: flex;
+    flex-direction: column;
+    min-height: 100svh;
+  }
+
+  .footer {
+    width: min(100%, 64rem);
+    margin: 0 auto;
+    padding: 0 max(var(--space-4), env(safe-area-inset-right)) max(var(--space-2), env(safe-area-inset-bottom))
+      max(var(--space-4), env(safe-area-inset-left));
+  }
+
   .start {
+    flex: 1;
     display: flex;
     flex-direction: column;
     justify-content: center;
     gap: var(--space-5);
     width: min(100%, 30rem);
-    min-height: 100svh;
     margin: 0 auto;
     padding: max(var(--space-5), env(safe-area-inset-top)) max(var(--space-4), env(safe-area-inset-right))
       max(var(--space-5), env(safe-area-inset-bottom)) max(var(--space-4), env(safe-area-inset-left));
@@ -193,6 +214,11 @@
 
     .lede {
       margin-bottom: var(--space-3);
+    }
+
+    /* four links wrap to two rows here */
+    .links {
+      margin-top: 0;
     }
 
     .tally {

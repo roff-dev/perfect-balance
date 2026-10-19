@@ -4,6 +4,7 @@
   import Backup from './app/Backup.svelte';
   import End from './app/End.svelte';
   import Freeplay from './app/Freeplay.svelte';
+  import HowToPlay from './app/HowToPlay.svelte';
   import type GameScreen from './app/Game.svelte';
   import type { Limits } from './app/game';
   import Start from './app/Start.svelte';
@@ -89,6 +90,7 @@
   let session = $state.raw<Session>();
   let results = $state.raw<Result[]>([]);
   let backingUp = $state(false);
+  let explaining = $state(false);
   let choosingRules = $state(false);
   let toast = $state('');
   let toastTimer: ReturnType<typeof setTimeout> | undefined;
@@ -223,6 +225,7 @@
     onarchive={() => go('archive')}
     onfreeplay={() => (choosingRules = true)}
     onbackup={() => (backingUp = true)}
+    onhowto={() => (explaining = true)}
   />
 {:else if screen === 'archive'}
   <Archive {today} {progress} onplay={(n) => void openPuzzle('archive', n)} onback={home} />
@@ -265,6 +268,10 @@
 
 {#if choosingRules}
   <Freeplay settings={progress.settings.freeplay} onstart={startFreeplay} onclose={() => (choosingRules = false)} />
+{/if}
+
+{#if explaining}
+  <HowToPlay onclose={() => (explaining = false)} />
 {/if}
 
 {#if backingUp}

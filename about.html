@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en-GB">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#EFE8DC" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <title>About Perfect Balance</title>
+    <meta name="description" content="Why I made Perfect Balance, where its weights come from, and how it's built." />
+    <link rel="stylesheet" href="/src/styles/page.css" />
+  </head>
+  <body>
+    <div class="page">
+      <a class="home" href="/"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M12 4v15M7 20h10M4 7h16M6 7l-3 7h6zM18 7l-3 7h6z" /></svg>Perfect Balance</a>
+      <main>
+        <h1>About</h1>
+        <p class="lede">I built this because I wanted to know if anyone can actually tell how heavy an elephant is. I couldn't.</p>
+
+        <p>Each day there's a new puzzle of five rounds, the same for everyone. Every round puts one thing on the left pan and gives you a shelf of everyday objects for the right. Stack up what you think weighs the same, lock it in, and the scale lets go. Land within 3% light or 4% heavy and the round's yours.</p>
+        <p>There's also Freeplay, with rules you can change: a tighter margin, a limit on how many things you can use, endless rounds, or a theme.</p>
+
+        <h2>Where the weights come from</h2>
+        <p>Every object you're asked to match has its weight from a standards body, a manufacturer, a sports governing body, a government database or a published study, checked against a second source. Fruit and veg vary, so for those I've used the average of two sources that agree within 10%.</p>
+        <p>The full list, with every source quoted, is in <a href="https://github.com/roff-dev/perfect-balance/blob/main/src/data/catalogue.json">the game's catalogue on GitHub</a>. If you think a weight's wrong, <a href="https://github.com/roff-dev/perfect-balance/issues">open an issue</a> and tell me where you found yours.</p>
+
+        <h2>How it's made</h2>
+        <p>The scene is drawn with three.js, and the physics is Jolt, compiled to WebAssembly and running in its own thread, so a pile of tins really can slide off a pan. Each round is generated from a seed with its answer built first, so there's always a way to win.</p>
+        <p>The code is open source under the MIT licence, <a href="https://github.com/roff-dev/perfect-balance">on GitHub</a>. The models and fonts are other people's work, listed on the <a href="/credits">Credits</a> page.</p>
+      </main>
+      <!--footer-->
+    </div>
+  </body>
+</html>
