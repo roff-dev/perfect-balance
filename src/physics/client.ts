@@ -1,3 +1,4 @@
+import { wasmUrl } from 'virtual:downloads';
 import type { BeamMotion } from './beam';
 import type { BodySpec, FromWorker, LockMasses, Snapshot, ToWorker, WorldOptions } from './protocol';
 
@@ -16,6 +17,8 @@ export class PhysicsClient {
   /** True when the world runs on the main thread because a worker couldn't start. */
   inline = false;
   onError: (message: string) => void = () => {};
+  /** Bytes of the physics engine downloaded since the last call. */
+  onBytes: (n: number) => void = () => {};
 
   private backend: Backend | undefined;
   private inFlight = false;
@@ -65,7 +68,7 @@ export class PhysicsClient {
 
   private async startInline(options: WorldOptions): Promise<Backend> {
     const { PhysicsWorld } = await import('./world');
-    const world = await PhysicsWorld.create(options);
+    const world = await PhysicsWorld.create(options, { url: wasmUrl, onBytes: (n) => this.onBytes(n) });
     return {
       post: (message) => {
         switch (message.type) {
@@ -97,6 +100,8 @@ export class PhysicsClient {
     if (message.type === 'snapshot') {
       this.latest = message;
       this.inFlight = false;
+    } else if (message.type === 'bytes') {
+      this.onBytes(message.n);
     } else if (message.type === 'error') {
       this.onError(message.message);
     }

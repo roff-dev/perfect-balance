@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { MODEL_BYTES, WASM_BYTES } from 'virtual:downloads';
 import { CONFIG } from '../game/config';
 import { judge, spokenResult, type Margin, type Result } from '../game/judge';
 import type { RoundSupply } from '../game/freeplay';
@@ -75,6 +76,8 @@ export interface PlacingState {
   opening: number;
   /** The round's models wouldn't load, and it can't be played without them. */
   failed: boolean;
+  /** How much of the first set-up has downloaded, 0 to 1, in whole percent. */
+  progress: number;
 }
 
 /** Where to draw the rotate buttons: just under the selected object, in client pixels. */
@@ -129,6 +132,8 @@ export class Game implements GestureTarget {
   private failed = false;
   /** The round being loaded, for a retry. */
   private opening = 0;
+  /** The first set-up's download: the physics engine and the first round's models. */
+  private readonly bytes = { loaded: 0, total: 1 };
   private index: number;
   private readonly bodies = new Map<number, Placed>();
   private readonly ray = new THREE.Raycaster();
@@ -268,6 +273,9 @@ export class Game implements GestureTarget {
 
   async start(): Promise<void> {
     this.stage.start((dt) => this.frame(dt));
+    const files = new Set(this.items(this.round).flatMap(({ model }) => ('file' in model ? [model.file] : [])));
+    this.bytes.total = WASM_BYTES + [...files].reduce((sum, file) => sum + (MODEL_BYTES[file] ?? 0), 0);
+    this.physics.onBytes = (n) => this.countBytes(n);
     this.prepare(this.index);
     await this.physics.init({ unitsPerMetre: this.round.unitsPerMetre });
     await this.open(this.index);
@@ -280,8 +288,10 @@ export class Game implements GestureTarget {
   private async load(index: number): Promise<Loaded> {
     const round = this.rounds.at(index);
     const { loadModel, shapeModel, MATERIAL } = await import('../scene/models');
-    const items = [round.prompt, ...round.inventory];
-    const models = await Promise.allSettled(items.map(({ model }) => ('file' in model ? loadModel(model.file) : shapeModel(model.shape, model.color))));
+    const items = this.items(round);
+    // only the first set-up shows its progress
+    const onBytes = this.ready ? undefined : (n: number) => this.countBytes(n);
+    const models = await Promise.allSettled(items.map(({ model }) => ('file' in model ? loadModel(model.file, onBytes) : shapeModel(model.shape, model.color))));
     const missing = items.filter((_, i) => models[i]!.status === 'rejected').map((item) => item.id);
     if (missing.length && !this.rounds.playableWithout(index, missing)) throw new Error(`Round ${index + 1} couldn't load: ${missing.join(', ')}`);
     const kinds = new Map<string, Kind>();
@@ -297,6 +307,15 @@ export class Game implements GestureTarget {
       });
     });
     return { kinds, missing };
+  }
+
+  private items(round: Round): Item[] {
+    return [round.prompt, ...round.inventory];
+  }
+
+  private countBytes(n: number): void {
+    this.bytes.loaded += n;
+    this.emitState();
   }
 
   /** Starts loading a round in the background, once. */
@@ -789,6 +808,8 @@ export class Game implements GestureTarget {
       missing: this.missing,
       opening: this.opening,
       failed: this.failed,
+      // a retried download counts twice, so it can pass the total
+      progress: Math.min(1, Math.floor((100 * this.bytes.loaded) / this.bytes.total) / 100),
     };
     const key = JSON.stringify(state);
     if (key === this.lastState) return;

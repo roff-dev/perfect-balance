@@ -9,6 +9,7 @@
 import * as THREE from 'three';
 import { ConvexGeometry } from 'three/addons/geometries/ConvexGeometry.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
+import { counting } from '../data/download';
 import { unitPoints, type ShapeKind } from '../game/shapes';
 
 export interface Model {
@@ -28,10 +29,11 @@ const RETRY_MS = 400;
 const files = new Map<string, Promise<Model>>();
 const shapes = new Map<string, Model>();
 
-export function loadModel(file: string): Promise<Model> {
+/** `onBytes` counts the download, if this call starts one. */
+export function loadModel(file: string, onBytes?: (n: number) => void): Promise<Model> {
   let model = files.get(file);
   if (!model) {
-    model = download(file).then(parse);
+    model = download(file, onBytes).then(parse);
     // not remembered, so asking again tries again
     model.catch(() => files.delete(file));
     files.set(file, model);
@@ -58,14 +60,14 @@ export function shapeModel(shape: ShapeKind, color: string): Model {
   return model;
 }
 
-async function download(file: string): Promise<ArrayBuffer> {
+async function download(file: string, onBytes?: (n: number) => void): Promise<ArrayBuffer> {
   const url = URLS[`../assets/models/${file}.glb`];
   if (!url) throw new Error(`No model called ${file}`);
   for (let attempt = 0; ; attempt++) {
     try {
       const response = await fetch(url);
       if (!response.ok) throw new Error(`${file}: ${response.status}`);
-      return await response.arrayBuffer();
+      return await (onBytes ? counting(response, onBytes) : response).arrayBuffer();
     } catch (error) {
       if (attempt >= RETRIES) throw error;
       await new Promise((resolve) => setTimeout(resolve, RETRY_MS * (attempt + 1)));

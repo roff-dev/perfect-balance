@@ -31,7 +31,7 @@
   let view = $state<View>('overview');
   let sheet = $state<HTMLElement>();
   let game: Game | undefined;
-  let placing = $state<PlacingState>({ ready: false, round: resumed.length, onPan: {}, panCount: 0, floor: [], full: false, carrying: undefined, putBack: false, phase: 'intro', result: undefined, missing: [], opening: resumed.length, failed: false });
+  let placing = $state<PlacingState>({ ready: false, round: resumed.length, onPan: {}, panCount: 0, floor: [], full: false, carrying: undefined, putBack: false, phase: 'intro', result: undefined, missing: [], opening: resumed.length, failed: false, progress: 0 });
   let results = $state<Result[]>([...resumed]);
   const round = $derived(rounds.at(placing.round));
   // an object that wouldn't load is left out of the round
@@ -170,7 +170,10 @@
           </button>
         </div>
       {:else if !placing.ready}
-        <p class="status" role="status">Setting up the scale…</p>
+        <p class="status" id="setting-up" role="status">Setting up the scale…</p>
+        <div class="meter" role="progressbar" aria-labelledby="setting-up" aria-valuemin="0" aria-valuemax="100" aria-valuenow={Math.round(placing.progress * 100)}>
+          <span style:transform="scaleX({placing.progress})"></span>
+        </div>
       {:else if placing.phase === 'loading'}
         <p class="status" role="status">Loading the round…</p>
       {:else if placing.phase === 'placing' && placing.panCount === 0 && placing.carrying === undefined}
@@ -396,6 +399,30 @@
 
   .error {
     color: var(--heavy);
+  }
+
+  /* real bytes: the physics engine and the first round's models */
+  .meter {
+    width: min(12rem, 60%);
+    height: 3px;
+    margin-top: var(--space-2);
+    border-radius: 2px;
+    background: var(--paper-sunk);
+    overflow: hidden;
+  }
+
+  .meter span {
+    display: block;
+    height: 100%;
+    background: var(--brass-ink);
+    transform-origin: left;
+    transition: transform 160ms linear;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .meter span {
+      transition: none;
+    }
   }
 
   .retry {

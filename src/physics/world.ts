@@ -1,4 +1,5 @@
 import initJolt from 'jolt-physics/wasm';
+import { counting } from '../data/download';
 import { beamAngle, type BeamMotion } from './beam';
 import { POSE_STRIDE, RIG_ENTRIES, type BodySpec, type LockMasses, type Snapshot, type WorldOptions } from './protocol';
 import { locate, padTopY, panParts, panRestY, RIG, type Location, type Quat, type Vec3 } from './rig';
@@ -21,6 +22,30 @@ export type BodyLocation = PanSide | Exclude<Location, 'pan'>;
 
 let joltModule: Promise<Jolt> | undefined;
 
+/** Where to fetch the engine from, so the bytes can be counted as they arrive. */
+export interface WasmSource {
+  url: string;
+  onBytes: (n: number) => void;
+}
+
+/** Jolt fetches its own WebAssembly unless it's given a source, which it streams in the same way. */
+function loadJolt(source?: WasmSource): Promise<Jolt> {
+  if (!source) return initJolt();
+  return new Promise((resolve, reject) => {
+    initJolt({
+      instantiateWasm(imports: WebAssembly.Imports, done: (instance: WebAssembly.Instance) => void) {
+        fetch(source.url)
+          .then((response) => {
+            if (!response.ok) throw new Error(`The physics engine didn't load: ${response.status}`);
+            return WebAssembly.instantiateStreaming(counting(response, source.onBytes), imports);
+          })
+          .then(({ instance }) => done(instance), reject);
+        return {};
+      },
+    }).then(resolve, reject);
+  });
+}
+
 export class PhysicsWorld {
   private readonly J: Jolt;
   private readonly jolt: InstanceType<Jolt['JoltInterface']>;
@@ -38,8 +63,11 @@ export class PhysicsWorld {
   private locked = false;
   steps = 0;
 
-  static async create(options: WorldOptions): Promise<PhysicsWorld> {
-    joltModule ??= initJolt();
+  static async create(options: WorldOptions, source?: WasmSource): Promise<PhysicsWorld> {
+    joltModule ??= loadJolt(source).catch((e: unknown) => {
+      joltModule = undefined;
+      throw e;
+    });
     return new PhysicsWorld(await joltModule, options);
   }
 

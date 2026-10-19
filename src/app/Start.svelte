@@ -12,13 +12,15 @@
     /** The streak shown, which is 0 once a day has been missed. */
     current: number;
     lapsed: boolean;
+    /** The game is still downloading after Play was pressed. */
+    busy?: boolean;
     onplay: () => void;
     onarchive: () => void;
     onfreeplay: () => void;
     onbackup: () => void;
   }
 
-  let { today, now, played, streak, current, lapsed, onplay, onarchive, onfreeplay, onbackup }: Props = $props();
+  let { today, now, played, streak, current, lapsed, busy = false, onplay, onarchive, onfreeplay, onbackup }: Props = $props();
 
   const date = $derived(puzzleDate(today).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' }));
   const action = $derived(
@@ -34,7 +36,7 @@
     <p class="date">No. {today}, {date}</p>
     <p class="lede">Stack everyday things on one pan until it weighs the same as the other.</p>
 
-    <button type="button" class="play" onclick={onplay}>{action}</button>
+    <button type="button" class="play" aria-busy={busy} onclick={onplay}>{busy ? 'Setting up…' : action}</button>
 
     <div class="tally">
       {#if lapsed}
@@ -99,6 +101,10 @@
     font-size: 17px;
     font-weight: 600;
     cursor: pointer;
+  }
+
+  .play[aria-busy='true'] {
+    cursor: progress;
   }
 
   .play:active {

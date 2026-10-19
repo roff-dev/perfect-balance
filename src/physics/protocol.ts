@@ -46,5 +46,7 @@ export interface Snapshot {
 
 export type FromWorker =
   | { type: 'ready' }
+  /** More of the physics engine has downloaded. */
+  | { type: 'bytes'; n: number }
   | ({ type: 'snapshot' } & Snapshot)
   | { type: 'error'; message: string };

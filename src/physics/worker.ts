@@ -1,3 +1,4 @@
+import { wasmUrl } from 'virtual:downloads';
 import type { FromWorker, ToWorker } from './protocol';
 import { PhysicsWorld } from './world';
 
@@ -49,7 +50,7 @@ onmessage = async (event: MessageEvent<ToWorker>) => {
   const message = event.data;
   try {
     if (message.type === 'init') {
-      world = await PhysicsWorld.create(message.options);
+      world = await PhysicsWorld.create(message.options, { url: wasmUrl, onBytes: (n) => send({ type: 'bytes', n }) });
       for (const m of queued.splice(0)) handle(m, world);
       send({ type: 'ready' });
     } else if (world) {

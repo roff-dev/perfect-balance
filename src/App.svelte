@@ -56,8 +56,19 @@
     return gameScreen;
   }
 
+  /** True while a game waits for the catalogue or its screen, after the player asked for it. */
+  let starting = $state(false);
+
   /** Everything a game needs before its screen can show. */
-  const ready = (): Promise<readonly CatalogueEntry[]> => Promise.all([withCatalogue(), withGame()]).then(([entries]) => entries);
+  async function ready(): Promise<readonly CatalogueEntry[]> {
+    starting = true;
+    try {
+      const [entries] = await Promise.all([withCatalogue(), withGame()]);
+      return entries;
+    } finally {
+      starting = false;
+    }
+  }
 
   /** `?seed=123` (and any rules with it) replays a particular freeplay game. */
   function linkedGame(): { seed: number; settings: FreeplaySettings } | undefined {
@@ -116,6 +127,7 @@
   const offline = () => showToast("Couldn't load the objects. Check your connection and try again.");
 
   async function openPuzzle(mode: Mode, n: number): Promise<void> {
+    if (starting) return;
     const entries = await ready().catch(() => undefined);
     if (entries) go(open(RoundSupply.of(dailyGame(n, entries)), { mode, n }));
     else offline();
@@ -123,6 +135,7 @@
 
   /** The address bar always holds the game's link, so it can be shared or reloaded. */
   async function openFreeplay(seed: number, settings: FreeplaySettings): Promise<void> {
+    if (starting) return;
     const entries = await ready().catch(() => undefined);
     if (!entries) return offline();
     go(open(RoundSupply.freeplay(seed, settings, entries), undefined, settings));
@@ -199,6 +212,7 @@
     streak={progress.streak}
     current={currentStreak(progress.streak, today)}
     lapsed={lapsed(progress.streak, today)}
+    busy={starting}
     onplay={() => void openPuzzle('daily', today)}
     onarchive={() => go('archive')}
     onfreeplay={() => (choosingRules = true)}
