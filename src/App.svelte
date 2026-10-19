@@ -4,10 +4,11 @@
   import Backup from './app/Backup.svelte';
   import End from './app/End.svelte';
   import Freeplay from './app/Freeplay.svelte';
-  import Game from './app/Game.svelte';
-  import { DAILY_LIMITS, type Limits } from './app/game';
+  import type GameScreen from './app/Game.svelte';
+  import type { Limits } from './app/game';
   import Start from './app/Start.svelte';
   import { loadCatalogue, type CatalogueEntry } from './data/catalogue';
+  import { CONFIG } from './game/config';
   import { dailyGame, puzzleNumber } from './game/daily';
   import { describeRules, fromQuery, RoundSupply, rulesFor, toQuery, type FreeplaySettings } from './game/freeplay';
   import { savedResult, type Result } from './game/judge';
@@ -38,6 +39,25 @@
     });
     return catalogue;
   }
+
+  let gameScreen: Promise<typeof GameScreen> | undefined;
+  /** three.js and the scene come with the game screen, so the start screen doesn't wait for them. */
+  let Game = $state.raw<typeof GameScreen>();
+
+  /** Loads the game screen once; if it fails, the next game tries again. */
+  function withGame(): Promise<typeof GameScreen> {
+    gameScreen ??= import('./app/Game.svelte').then(
+      (m) => (Game = m.default),
+      (e: unknown) => {
+        gameScreen = undefined;
+        throw e;
+      },
+    );
+    return gameScreen;
+  }
+
+  /** Everything a game needs before its screen can show. */
+  const ready = (): Promise<readonly CatalogueEntry[]> => Promise.all([withCatalogue(), withGame()]).then(([entries]) => entries);
 
   /** `?seed=123` (and any rules with it) replays a particular freeplay game. */
   function linkedGame(): { seed: number; settings: FreeplaySettings } | undefined {
@@ -96,14 +116,14 @@
   const offline = () => showToast("Couldn't load the objects. Check your connection and try again.");
 
   async function openPuzzle(mode: Mode, n: number): Promise<void> {
-    const entries = await withCatalogue().catch(() => undefined);
+    const entries = await ready().catch(() => undefined);
     if (entries) go(open(RoundSupply.of(dailyGame(n, entries)), { mode, n }));
     else offline();
   }
 
   /** The address bar always holds the game's link, so it can be shared or reloaded. */
   async function openFreeplay(seed: number, settings: FreeplaySettings): Promise<void> {
-    const entries = await withCatalogue().catch(() => undefined);
+    const entries = await ready().catch(() => undefined);
     if (!entries) return offline();
     go(open(RoundSupply.freeplay(seed, settings, entries), undefined, settings));
     history.replaceState(history.state, '', location.pathname + toQuery(seed, settings));
@@ -115,7 +135,7 @@
     void openFreeplay(randomSeed(), settings);
   }
 
-  const limitsFor = (s: FreeplaySettings): Limits => ({ margin: rulesFor(s).margin, maxBodies: s.cap || DAILY_LIMITS.maxBodies });
+  const limitsFor = (s: FreeplaySettings): Limits => ({ margin: rulesFor(s).margin, maxBodies: s.cap || CONFIG.maxDynamicBodies });
 
   function saveRounds(played: Result[]): void {
     const puzzle = session?.puzzle;
@@ -136,7 +156,7 @@
   if (linked) {
     // shows nothing until the game is ready
     screen = 'game';
-    withCatalogue().then(
+    ready().then(
       (entries) => (screen = open(RoundSupply.freeplay(linked.seed, linked.settings, entries), undefined, linked.settings)),
       () => {
         screen = 'start';
@@ -146,8 +166,17 @@
   }
 
   onMount(() => {
-    // the first game shouldn't have to wait for it
+    // the first game shouldn't have to wait for them
     withCatalogue().catch(() => {});
+    const prefetch = () => void withGame().catch(() => {});
+    let cancelPrefetch: () => void;
+    if ('requestIdleCallback' in window) {
+      const id = requestIdleCallback(prefetch, { timeout: 2000 });
+      cancelPrefetch = () => cancelIdleCallback(id);
+    } else {
+      const id = setTimeout(prefetch, 200);
+      cancelPrefetch = () => clearTimeout(id);
+    }
     const clock = setInterval(() => (now = Date.now()), 1000);
     const back = () => {
       screen = 'start';
@@ -156,6 +185,7 @@
     addEventListener('popstate', back);
     return () => {
       clearInterval(clock);
+      cancelPrefetch();
       removeEventListener('popstate', back);
     };
   });
@@ -176,11 +206,11 @@
   />
 {:else if screen === 'archive'}
   <Archive {today} {progress} onplay={(n) => void openPuzzle('archive', n)} onback={home} />
-{:else if session && screen === 'game'}
+{:else if Game && session && screen === 'game'}
   {#key session}
     <Game
       rounds={session.rounds}
-      limits={session.freeplay ? limitsFor(session.freeplay) : DAILY_LIMITS}
+      limits={session.freeplay ? limitsFor(session.freeplay) : undefined}
       rules={session.freeplay ? describeRules(session.freeplay) : ''}
       played={session.played}
       onresult={saveRounds}
