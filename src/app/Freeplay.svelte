@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount, untrack } from 'svelte';
   import { THEME_NAMES, type Theme } from '../data/catalogue';
-  import { CAP_CHOICES, ROUND_CHOICES, type FreeplaySettings } from '../game/freeplay';
+  import { CAP_CHOICES, DIFFICULTIES, DIFFICULTY_NAMES, ROUND_CHOICES, windowWords, type FreeplaySettings } from '../game/freeplay';
 
   interface Props {
     settings: FreeplaySettings;
@@ -50,10 +50,15 @@
       <input type="checkbox" role="switch" bind:checked={draft.endless} />
     </label>
 
-    <label class="switch">
-      <span class="text"><strong>Precision</strong><span>Only within 1% either way counts as balanced.</span></span>
-      <input type="checkbox" role="switch" bind:checked={draft.precision} />
-    </label>
+    <fieldset class="difficulty" aria-describedby="difficulty-window">
+      <legend>Difficulty</legend>
+      <div class="segments">
+        {#each DIFFICULTIES as d (d)}
+          <label><input type="radio" name="difficulty" value={d} bind:group={draft.difficulty} /><span>{DIFFICULTY_NAMES[d]}</span></label>
+        {/each}
+      </div>
+      <p class="window" id="difficulty-window">{windowWords(draft.difficulty).replace(/^w/, 'W')} counts as balanced.</p>
+    </fieldset>
 
     <div class="group">
       <label class="switch">
@@ -190,6 +195,29 @@
 
   .row:disabled {
     opacity: 0.45;
+  }
+
+  /* four names don't fit beside the legend on a phone, so the control takes the full width */
+  .difficulty .segments {
+    display: flex;
+    margin-top: var(--space-2);
+  }
+
+  .difficulty label {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .difficulty .segments span {
+    min-width: 0;
+    padding: 0 var(--space-1);
+  }
+
+  .window {
+    margin: var(--space-2) 0 0;
+    color: var(--ink-soft);
+    font-size: var(--text-small);
+    line-height: 1.35;
   }
 
   .inset {
