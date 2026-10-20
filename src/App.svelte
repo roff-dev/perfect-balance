@@ -246,6 +246,8 @@
       onresult={saveRounds}
       onrestart={(played) => (session = { ...session!, played })}
       onunsupported={() => (screen = 'unsupported')}
+      onleave={session.puzzle ? home : undefined}
+      daily={session.puzzle?.mode === 'daily'}
       onfinish={(r) => {
         results = r;
         go('end');

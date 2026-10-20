@@ -1,12 +1,13 @@
 <script lang="ts">
   import { onMount, tick, untrack } from 'svelte';
   import { Calculator, type Key } from '../game/calculator';
-  import type { Result } from '../game/judge';
+  import { judge, type Result } from '../game/judge';
   import type { RoundSupply } from '../game/freeplay';
   import InventorySheet from '../ui/InventorySheet.svelte';
   import Slip from '../ui/Slip.svelte';
   import VerdictGlyph from '../ui/VerdictGlyph.svelte';
   import { DAILY_LIMITS, Game, type Limits, type PlacingState, type Selection, type View } from './game';
+  import Leave from './Leave.svelte';
 
   interface Props {
     rounds: RoundSupply;
@@ -21,9 +22,13 @@
     /** The scene couldn't start, though the browser said it could draw 3D. */
     onunsupported?: () => void;
     onfinish: (results: Result[]) => void;
+    /** Leaves a numbered puzzle to finish later; without it, the only way out is to give up. */
+    onleave?: () => void;
+    /** Today's puzzle, so giving up still counts for the streak. */
+    daily?: boolean;
   }
 
-  let { rounds, limits = DAILY_LIMITS, rules = '', played = [], onresult, onrestart, onunsupported, onfinish }: Props = $props();
+  let { rounds, limits = DAILY_LIMITS, rules = '', played = [], onresult, onrestart, onunsupported, onfinish, onleave, daily = false }: Props = $props();
 
   const ROTATE_STEP = Math.PI / 12;
   // a new game mounts a new screen, so only the first value matters
@@ -108,6 +113,30 @@
     game?.setInsets({ top: clear + 8, right: 12, bottom: bottom + 4, left: 12 });
   }
 
+  // giving up (§16): the rounds not played score as empty pans
+  let leaving = $state(false);
+  let givingUp = false;
+
+  function giveUp(): void {
+    // a round that's already locked in keeps its result
+    if (placing.phase === 'locking' || placing.phase === 'revealing') givingUp = true;
+    else finishEarly();
+  }
+
+  function finishEarly(): void {
+    const played = $state.snapshot(results) as Result[];
+    const empty = judge([], 1, limits.margin);
+    // an endless game is over at its first miss, so only the round it's on is lost
+    if (endless) {
+      if (played.at(-1)?.verdict !== 'light' && played.at(-1)?.verdict !== 'heavy') played.push(empty);
+    } else {
+      while (played.length < rounds.count) played.push({ ...empty });
+    }
+    results = played;
+    onresult?.(played);
+    onfinish(played);
+  }
+
   function keydown(e: KeyboardEvent): void {
     if (e.key.toLowerCase() !== 'v' || e.repeat || e.ctrlKey || e.metaKey || e.altKey) return;
     game?.toggleView();
@@ -130,6 +159,7 @@
     g.onResult = (i, r) => {
       results[i] = r;
       onresult?.($state.snapshot(results));
+      if (givingUp) finishEarly();
     };
     g.start().catch((e: unknown) => (error = e instanceof Error ? e.message : String(e)));
     game = g;
@@ -152,20 +182,25 @@
     <div class="canvas" bind:this={host} role="img" aria-label={description}></div>
 
     <header class="top" bind:this={top}>
-      <p class="rounds">
-        {#if endless}
-          <span class="count">Round {placing.round + 1}</span>
-        {:else}
-          <span class="visually-hidden">Round {placing.round + 1} of {rounds.count}</span>
-          {#each { length: rounds.count }, i (i)}
-            {#if results[i]}
-              <span class="dot {results[i].verdict}"><VerdictGlyph verdict={results[i].verdict} /></span>
-            {:else}
-              <span class="dot" class:current={i === placing.round} aria-hidden="true"></span>
-            {/if}
-          {/each}
-        {/if}
-      </p>
+      <div class="bar">
+        <button type="button" class="mark" aria-label="Leave this game" aria-haspopup="dialog" onclick={() => (leaving = true)}>
+          <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M12 4v15M7 20h10M4 7h16M6 7l-3 7h6zM18 7l-3 7h6z" /></svg>
+        </button>
+        <p class="rounds">
+          {#if endless}
+            <span class="count">Round {placing.round + 1}</span>
+          {:else}
+            <span class="visually-hidden">Round {placing.round + 1} of {rounds.count}</span>
+            {#each { length: rounds.count }, i (i)}
+              {#if results[i]}
+                <span class="dot {results[i].verdict}"><VerdictGlyph verdict={results[i].verdict} /></span>
+              {:else}
+                <span class="dot" class:current={i === placing.round} aria-hidden="true"></span>
+              {/if}
+            {/each}
+          {/if}
+        </p>
+      </div>
       <!-- a round that won't load is named, rather than the one before it -->
       {#key placing.failed ? placing.opening : placing.round}
         <h1 class="prompt">{rounds.at(placing.failed ? placing.opening : placing.round).prompt.name}</h1>
@@ -283,6 +318,17 @@
   <div class="visually-hidden" aria-live="polite">{announcement}</div>
 </main>
 
+{#if leaving}
+  <Leave
+    resume={onleave ? results.length + 1 : undefined}
+    {endless}
+    {daily}
+    onlater={() => onleave?.()}
+    ongiveup={giveUp}
+    onclose={() => (leaving = false)}
+  />
+{/if}
+
 <style>
   .layout {
     display: grid;
@@ -323,12 +369,46 @@
     pointer-events: none;
   }
 
+  /* the mark's 44 px target overlaps the space around the dots, so the prompt stays where it was */
+  .bar {
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+    margin: -15px 0 calc(var(--space-2) - 15px) -11px;
+  }
+
+  .mark {
+    display: grid;
+    place-items: center;
+    width: var(--target);
+    height: var(--target);
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: none;
+    cursor: pointer;
+    pointer-events: auto;
+    touch-action: manipulation;
+  }
+
+  .mark:hover {
+    background: rgb(184 137 47 / 0.14);
+  }
+
+  .mark path {
+    fill: none;
+    stroke: var(--brass-ink);
+    stroke-width: 1.6;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
   .rounds {
     display: flex;
     align-items: center;
     gap: 6px;
     height: 14px;
-    margin: 0 0 var(--space-2);
+    margin: 0;
   }
 
   .count {
@@ -621,8 +701,10 @@
       grid-template-columns: minmax(0, 1fr) calc(220px + env(safe-area-inset-right));
     }
 
-    .rounds {
-      margin-bottom: var(--space-1);
+    /* the bar sits nearer the top here, so the target stays on screen */
+    .bar {
+      margin-top: calc(-1 * var(--space-3));
+      margin-bottom: calc(var(--space-1) - 15px);
     }
 
     .foot {
