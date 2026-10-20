@@ -137,6 +137,41 @@
     onfinish(played);
   }
 
+  // tile names get cut short, so the one under the pointer, focused or held shows in full in the status line
+  const NAME_LINGER_MS = 2500;
+  let pointed = $state<string>();
+  let lingering: ReturnType<typeof setTimeout> | undefined;
+  const named = $derived.by(() => {
+    const id = placing.carrying ?? pointed;
+    return id && placing.phase === 'placing' ? inventory.find((item) => item.id === id)?.name : undefined;
+  });
+
+  const tileItem = (e: Event) => (e.target instanceof Element ? e.target.closest<HTMLElement>('[data-item]')?.dataset.item : undefined);
+
+  function point(e: Event): void {
+    const id = tileItem(e);
+    // a tap focuses the tile too, but only keyboard focus should keep the name up
+    if (!id || (e.type === 'focusin' && !(e.target as Element).matches(':focus-visible'))) return;
+    clearTimeout(lingering);
+    pointed = id;
+  }
+
+  /** A finger lifts as soon as it taps, so the name stays a moment longer. */
+  function unpoint(e: Event): void {
+    if (!tileItem(e)) return;
+    clearTimeout(lingering);
+    if (e instanceof PointerEvent && e.pointerType === 'touch') lingering = setTimeout(() => (pointed = undefined), NAME_LINGER_MS);
+    else pointed = undefined;
+  }
+
+  $effect(() => {
+    void placing.round;
+    untrack(() => {
+      clearTimeout(lingering);
+      pointed = undefined;
+    });
+  });
+
   function keydown(e: KeyboardEvent): void {
     if (e.key.toLowerCase() !== 'v' || e.repeat || e.ctrlKey || e.metaKey || e.altKey) return;
     game?.toggleView();
@@ -177,7 +212,15 @@
 
 <svelte:window onkeydown={keydown} />
 
-<main class="layout" class:carrying={placing.carrying !== undefined} class:slip-open={slipOpen}>
+<main
+  class="layout"
+  class:carrying={placing.carrying !== undefined}
+  class:slip-open={slipOpen}
+  onpointerover={point}
+  onpointerout={unpoint}
+  onfocusin={point}
+  onfocusout={unpoint}
+>
   <div class="stage" bind:this={stage}>
     <div class="canvas" bind:this={host} role="img" aria-label={description}></div>
 
@@ -275,7 +318,12 @@
       {:else if placing.phase === 'loading'}
         <p class="status" role="status">Loading the round…</p>
       {:else if placing.phase === 'placing' && placing.panCount === 0 && placing.carrying === undefined}
-        <p class="status">Drag something onto your pan.</p>
+        <!-- kept in place under a name, so the line's height doesn't change -->
+        <p class="status" class:covered={named}>Drag something onto your pan.</p>
+      {/if}
+      {#if named && !error && !placing.failed}
+        <!-- the tile's own name already says it to screen readers -->
+        <p class="status name" aria-hidden="true">{named}</p>
       {/if}
     </div>
 
@@ -572,6 +620,31 @@
     line-height: 1.15;
     color: var(--ink-soft);
     pointer-events: none;
+  }
+
+  .covered {
+    visibility: hidden;
+  }
+
+  /* pinned to the bottom of the line, so a long name grows upwards and the framing doesn't move */
+  .name {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    overflow: hidden;
+    color: var(--ink);
+    animation: arrive 160ms ease-out;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .name {
+      animation: none;
+    }
   }
 
   /* real bytes: the physics engine and the first round's models */

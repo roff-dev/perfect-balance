@@ -375,7 +375,7 @@
   @media (orientation: landscape) and (max-height: 500px) {
     .sheet {
       --tile-w: 100%;
-      --tile-h: 76px;
+      --tile-h: 88px;
       padding: max(var(--space-2), env(safe-area-inset-top)) 0 max(var(--space-2), env(safe-area-inset-bottom));
       gap: var(--space-2);
       border-top: 0;
@@ -390,12 +390,6 @@
       min-height: 0;
       display: flex;
       margin: 0 max(var(--space-2), env(safe-area-inset-right)) 0 var(--space-2);
-    }
-
-    /* a short column: one line of name, so more tiles fit */
-    .well :global(.name) {
-      -webkit-line-clamp: 1;
-      line-clamp: 1;
     }
 
     .well {
