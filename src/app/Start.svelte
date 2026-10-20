@@ -3,7 +3,8 @@
   import { countdown, msUntilNext, puzzleDate } from '../game/daily';
   import { footerHtml } from './footer';
   import type { Played, Streak } from '../game/storage';
-  import Sketch from '../ui/Sketch.svelte';
+  import Showcase from '../ui/Showcase.svelte';
+  import { intro } from './intro.svelte';
 
   interface Props {
     today: number;
@@ -15,6 +16,11 @@
     lapsed: boolean;
     /** The game is still downloading after Play was pressed. */
     busy?: boolean;
+    /** The cookie notice has been eaten (the scale catches the crumbs). */
+    cookieEaten: boolean;
+    /** The opening has played on an earlier visit. */
+    introSeen: boolean;
+    onintroseen: () => void;
     onplay: () => void;
     onarchive: () => void;
     onfreeplay: () => void;
@@ -22,7 +28,7 @@
     onhowto: () => void;
   }
 
-  let { today, now, played, streak, current, lapsed, busy = false, onplay, onarchive, onfreeplay, onbackup, onhowto }: Props = $props();
+  let { today, now, played, streak, current, lapsed, busy = false, cookieEaten, introSeen, onintroseen, onplay, onarchive, onfreeplay, onbackup, onhowto }: Props = $props();
 
   const date = $derived(puzzleDate(today).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' }));
   const action = $derived(
@@ -30,18 +36,19 @@
   );
 </script>
 
-<div class="screen">
+<!-- during the opening only the scale shows; the words are there for assistive tech throughout -->
+<div class="screen" class:veiled={intro.veiled}>
 <main class="start">
-  <div class="sketch"><Sketch /></div>
+  <div class="sketch"><Showcase {cookieEaten} {introSeen} {onintroseen} /></div>
 
   <div class="copy">
-    <h1>Perfect Balance</h1>
-    <p class="date">No. {today}, {date}</p>
-    <p class="lede">Stack everyday things on one pan until it weighs the same as the other.</p>
+    <h1 style:--n="0">Perfect Balance</h1>
+    <p class="date" style:--n="1">No. {today}, {date}</p>
+    <p class="lede" style:--n="2">Stack everyday things on one pan until it weighs the same as the other.</p>
 
-    <button type="button" class="play" aria-busy={busy} onclick={onplay}>{busy ? 'Setting up…' : action}</button>
+    <button type="button" class="play" style:--n="3" aria-busy={busy} onclick={onplay}>{busy ? 'Setting up…' : action}</button>
 
-    <div class="tally">
+    <div class="tally" style:--n="4">
       {#if lapsed}
         <p class="welcome">Your streak's gone. The scale doesn't hold grudges.</p>
       {:else if current > 0}
@@ -50,7 +57,7 @@
       <p>New puzzle in <span class="time">{countdown(msUntilNext(now))}</span></p>
     </div>
 
-    <nav class="links">
+    <nav class="links" style:--n="5">
       <button type="button" class="link" onclick={onarchive}>Archive</button>
       <button type="button" class="link" onclick={onfreeplay}>Freeplay</button>
       <button type="button" class="link" onclick={onhowto}>How to play</button>
@@ -58,7 +65,7 @@
     </nav>
   </div>
 </main>
-<div class="footer">
+<div class="footer" style:--n="6">
   {@html footerHtml()}
 </div>
 </div>
@@ -68,6 +75,24 @@
     display: flex;
     flex-direction: column;
     min-height: 100svh;
+    /* the scale's canvas reaches past its place, never past the screen's sides */
+    overflow-x: clip;
+  }
+
+  /* the words come in one after another as the scale settles into place */
+  .copy > *,
+  .footer {
+    transition:
+      opacity 500ms cubic-bezier(0.2, 0, 0.2, 1),
+      translate 600ms cubic-bezier(0.2, 0.8, 0.2, 1);
+    transition-delay: calc(var(--n, 0) * 70ms);
+  }
+
+  .veiled .copy > *,
+  .veiled .footer {
+    opacity: 0;
+    translate: 0 14px;
+    transition: none;
   }
 
   .footer {

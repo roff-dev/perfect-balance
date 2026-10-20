@@ -181,16 +181,17 @@ export class ScaleModel {
     this.updateChains();
   }
 
+  // in the group's own space, like the chains themselves, so they stay attached however the group is turned
   private updateChains(): void {
-    this.beam.updateMatrixWorld();
+    this.beam.updateMatrix();
     let n = 0;
     this.pans.forEach((pan, side) => {
-      pan.updateMatrixWorld();
-      this.a.set(side === 0 ? -RIG.armLength : RIG.armLength, -0.02, 0).applyMatrix4(this.beam.matrixWorld);
+      pan.updateMatrix();
+      this.a.set(side === 0 ? -RIG.armLength : RIG.armLength, -0.02, 0).applyMatrix4(this.beam.matrix);
       for (let c = 0; c < CHAINS_PER_PAN; c++) {
         const angle = (c / CHAINS_PER_PAN) * Math.PI * 2 + Math.PI / 2;
         const r = RIG.panRadius + 0.01;
-        this.b.set(Math.cos(angle) * r, RIM_TOP, Math.sin(angle) * r).applyMatrix4(pan.matrixWorld);
+        this.b.set(Math.cos(angle) * r, RIM_TOP, Math.sin(angle) * r).applyMatrix4(pan.matrix);
         const length = this.b.distanceTo(this.a);
         this.q.setFromUnitVectors(this.up, this.dir.subVectors(this.a, this.b).normalize());
         this.m.compose(this.b, this.q, this.s.set(1, length, 1));

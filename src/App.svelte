@@ -222,6 +222,12 @@
     current={currentStreak(progress.streak, today)}
     lapsed={lapsed(progress.streak, today)}
     busy={starting}
+    cookieEaten={progress.settings.cookieEaten}
+    introSeen={progress.settings.introSeen}
+    onintroseen={() => {
+      progress.settings.introSeen = true;
+      persist();
+    }}
     onplay={() => void openPuzzle('daily', today)}
     onarchive={() => go('archive')}
     onfreeplay={() => (choosingRules = true)}

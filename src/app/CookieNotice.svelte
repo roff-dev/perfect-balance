@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import type { CookieView } from '../scene/cookie';
+  import { intro } from './intro.svelte';
 
   interface Props {
     /** The last bite is taken and the notice has gone. */
@@ -30,6 +31,8 @@
   let view: CookieView | undefined;
   /** The cookie is ready (or couldn't be drawn), so the notice can arrive. */
   let shown = $state(false);
+  /** Up on the page: the cookie is ready and the start screen's opening has finished. */
+  const arrived = $derived(shown && !intro.playing);
   let failed = $state(false);
   let bites = $state(0);
   let eating = $state(false);
@@ -41,7 +44,7 @@
   // the desktop banner pushes the start screen down rather than covering it (Start.svelte reads this)
   $effect(() => {
     const root = document.documentElement.style;
-    if (shown && !leaving) root.setProperty('--notice-space', `${height}px`);
+    if (arrived && !leaving) root.setProperty('--notice-space', `${height}px`);
     else root.removeProperty('--notice-space');
     return () => root.removeProperty('--notice-space');
   });
@@ -135,7 +138,7 @@
 
 <aside
   class="notice"
-  class:waiting={!shown}
+  class:waiting={!arrived}
   class:leaving
   aria-labelledby="cookie-title"
   bind:offsetHeight={height}
