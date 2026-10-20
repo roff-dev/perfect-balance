@@ -102,6 +102,14 @@
     "kenney": "food-kit",
     "name": "coconut"
   },
+  "cookie": {
+    "kenney": "food-kit",
+    "name": "cookie",
+    "recolor": {
+      "#e07b6a": "#d49a3a",
+      "#7d5b44": "#3d342a"
+    }
+  },
   "computer-keyboard": {
     "kenney": "furniture-kit",
     "name": "computerKeyboard"

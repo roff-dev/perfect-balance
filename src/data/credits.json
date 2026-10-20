@@ -269,6 +269,15 @@
     "downloaded": "2026-10-17",
     "changes": "recoloured to the shared palette, rescaled"
   },
+  "cookie": {
+    "title": "cookie",
+    "author": "Kenney",
+    "licence": "CC0 1.0",
+    "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "source": "https://kenney.nl/assets/food-kit",
+    "downloaded": "2026-10-17",
+    "changes": "recoloured to the shared palette, rescaled"
+  },
   "crocodile": {
     "title": "Crocodile",
     "author": "Poly by Google",

@@ -73,7 +73,8 @@ const escape = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').rep
  * the work's own title and what was changed, as the licence asks.
  */
 function creditsHtml(): string {
-  const shows = new Map<string, string[]>();
+  // models used outside the catalogue
+  const shows = new Map<string, string[]>([['cookie', ['Cookie (the cookie notice)']]]);
   for (const entry of JSON.parse(fs.readFileSync(CATALOGUE, 'utf8')) as { name: string; model: { file?: string } }[]) {
     if (entry.model.file) shows.set(entry.model.file, [...(shows.get(entry.model.file) ?? []), entry.name]);
   }

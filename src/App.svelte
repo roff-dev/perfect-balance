@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import Archive from './app/Archive.svelte';
   import Backup from './app/Backup.svelte';
+  import CookieNotice from './app/CookieNotice.svelte';
   import End from './app/End.svelte';
   import Freeplay from './app/Freeplay.svelte';
   import HowToPlay from './app/HowToPlay.svelte';
@@ -272,6 +273,15 @@
 
 {#if explaining}
   <HowToPlay onclose={() => (explaining = false)} />
+{/if}
+
+{#if screen === 'start' && !progress.settings.cookieEaten}
+  <CookieNotice
+    oneaten={() => {
+      progress.settings.cookieEaten = true;
+      persist();
+    }}
+  />
 {/if}
 
 {#if backingUp}

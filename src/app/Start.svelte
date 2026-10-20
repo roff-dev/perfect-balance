@@ -187,6 +187,14 @@
     }
   }
 
+  /* room for the cookie banner (CookieNotice.svelte) while it's up */
+  @media (min-width: 900px) {
+    .screen {
+      padding-top: var(--notice-space, 0px);
+      transition: padding-top 300ms cubic-bezier(0.4, 0, 0.2, 1);
+    }
+  }
+
   /* the drawing beside the words */
   @media (min-width: 900px), (orientation: landscape) and (max-height: 500px) {
     .start {
