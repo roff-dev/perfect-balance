@@ -18,15 +18,22 @@
   const COUNT_MS = 1300;
   const VERDICT_MS = 150;
   const BUTTON_MS = 350;
+  // a win also locks each wheel in turn, left to right, then the stamp comes down
+  const LOCK_STEP_MS = 70;
+  const LOCK_MS = 220;
+  const STAMP_MS = 180;
+  const STAMP_BUTTON_MS = 600;
 
+  const win = $derived(result.verdict === 'balanced');
   const chars = $derived([...result.percent]);
   const decimals = $derived(result.percent.includes('.') ? 1 : 0);
   /** The final reading in its last digit's units: "103.8%" is 1038. An empty pan or "<0.1%" doesn't count up. */
   const final = $derived(result.percent.startsWith('<') ? 0 : Number(result.percent.replace(/\D/g, '')));
   let n = $state(0);
-  let stage = $state<'count' | 'verdict' | 'ready'>('count');
+  let stage = $state<'count' | 'locked' | 'verdict' | 'ready'>('count');
   let next = $state<HTMLButtonElement>();
   let frame = 0;
+  let buzzed = false;
   const timers: ReturnType<typeof setTimeout>[] = [];
 
   /** Which place (0 for the last digit) each character of the reading is, or -1 for "." and "%". */
@@ -34,6 +41,14 @@
     let k = chars.filter((c) => /\d/.test(c)).length;
     return chars.map((c) => (/\d/.test(c) ? --k : -1));
   });
+  const digitCount = $derived(places.filter((k) => k >= 0).length);
+
+  /** One short buzz as the stamp lands, on phones that allow it (not iPhones). */
+  function buzz(): void {
+    if (buzzed) return;
+    buzzed = true;
+    navigator.vibrate?.(35);
+  }
 
   /**
    * An odometer: the last wheel turns with the count, and each wheel above only turns while the
@@ -58,6 +73,7 @@
     for (const t of timers) clearTimeout(t);
     n = final;
     stage = 'ready';
+    if (win) buzz();
   }
 
   $effect(() => {
@@ -76,10 +92,21 @@
       if (p < 1) frame = requestAnimationFrame(count);
     };
     frame = requestAnimationFrame(count);
-    timers.push(
-      setTimeout(() => (stage = 'verdict'), ENTER_MS + COUNT_MS + VERDICT_MS),
-      setTimeout(() => (stage = 'ready'), ENTER_MS + COUNT_MS + VERDICT_MS + BUTTON_MS),
-    );
+    const counted = ENTER_MS + COUNT_MS;
+    if (win) {
+      const stamp = counted + LOCK_STEP_MS * (digitCount - 1) + LOCK_MS;
+      timers.push(
+        setTimeout(() => (stage = 'locked'), counted),
+        setTimeout(() => (stage = 'verdict'), stamp),
+        setTimeout(buzz, stamp + STAMP_MS),
+        setTimeout(() => (stage = 'ready'), stamp + STAMP_BUTTON_MS),
+      );
+    } else {
+      timers.push(
+        setTimeout(() => (stage = 'verdict'), counted + VERDICT_MS),
+        setTimeout(() => (stage = 'ready'), counted + VERDICT_MS + BUTTON_MS),
+      );
+    }
     return () => {
       cancelAnimationFrame(frame);
       for (const t of timers) clearTimeout(t);
@@ -89,12 +116,17 @@
 
 <div class="dim" aria-hidden="true"></div>
 <div class="place">
-  <section class="ticket {result.verdict}" aria-label="Result">
+  <section class="ticket {result.verdict}" class:stamped={win && (stage === 'verdict' || stage === 'ready')} aria-label="Result">
     <p class="visually-hidden">{spokenResult(result)}</p>
     <p class="value" aria-hidden="true">
       {#each chars as c, i (i)}
         {#if places[i]! >= 0}
-          <span class="wheel" class:leading={stage === 'count' && leading(places[i]!)}>
+          <span
+            class="wheel"
+            class:leading={stage === 'count' && leading(places[i]!)}
+            class:locked={win && stage !== 'count'}
+            style:--lock-delay="{(digitCount - 1 - places[i]!) * LOCK_STEP_MS}ms"
+          >
             <span class="strip" style:transform="translate3d(0, {-wheel(places[i]!)}em, 0)">
               {#each { length: 11 }, d (d)}
                 <span>{d % 10}</span>
@@ -102,11 +134,11 @@
             </span>
           </span>
         {:else}
-          <span class="glyph">{c}</span>
+          <span class="glyph" class:locked={win && stage !== 'count'} style:--lock-delay="{(digitCount - 1) * LOCK_STEP_MS}ms">{c}</span>
         {/if}
       {/each}
     </p>
-    <p class="verdict" class:shown={stage !== 'count'} aria-hidden="true">
+    <p class="verdict" class:shown={stage === 'verdict' || stage === 'ready'} class:stamp={win} aria-hidden="true">
       <VerdictGlyph verdict={result.verdict} />
       {VERDICT_WORDS[result.verdict]}
     </p>
@@ -140,7 +172,7 @@
     pointer-events: none;
   }
 
-  /* a weighing machine's printed ticket: the share card's double brass rule over raised paper */
+  /* a weighing machine's printed ticket: a double brass rule over raised paper */
   .ticket {
     display: grid;
     justify-items: center;
@@ -152,9 +184,38 @@
     border: 4px double var(--brass);
     border-radius: var(--radius-tile);
     background: var(--paper-raised);
+    position: relative;
     box-shadow: 0 24px 60px -24px rgb(31 27 23 / 0.6);
     pointer-events: auto;
     animation: rise 300ms cubic-bezier(0.2, 0.9, 0.3, 1);
+  }
+
+  /* a win: the card takes the stamp's knock as it lands */
+  .ticket.stamped {
+    animation:
+      rise 300ms cubic-bezier(0.2, 0.9, 0.3, 1),
+      knock 300ms cubic-bezier(0.3, 0.7, 0.4, 1) 180ms;
+  }
+
+  /* then light runs once along the brass rule */
+  .ticket::after {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    border: 4px solid transparent;
+    border-radius: inherit;
+    background: linear-gradient(115deg, transparent 38%, rgb(255 244 210 / 0.95) 50%, transparent 62%) border-box;
+    background-size: 300% 100%;
+    mask:
+      linear-gradient(#000 0 0) padding-box,
+      linear-gradient(#000 0 0) border-box;
+    mask-composite: exclude;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .ticket.stamped::after {
+    animation: glint 800ms ease-in-out 260ms;
   }
 
   /* wider screens have room to spare, so the card is never just a frame around its reading */
@@ -203,6 +264,23 @@
     color: rgb(31 27 23 / 0.25);
   }
 
+  /* a win locks the counter: each wheel clicks home and turns green, left to right */
+  .wheel.locked {
+    background: color-mix(in oklab, var(--balanced), var(--paper-raised) 84%);
+    box-shadow: inset 0 0 0 1.5px color-mix(in oklab, var(--balanced), transparent 60%);
+    color: var(--balanced);
+    transition:
+      color 160ms ease-out var(--lock-delay),
+      background-color 160ms ease-out var(--lock-delay),
+      box-shadow 160ms ease-out var(--lock-delay);
+    animation: click 220ms cubic-bezier(0.3, 1.6, 0.5, 1) var(--lock-delay);
+  }
+
+  .glyph.locked {
+    color: var(--balanced);
+    transition: color 160ms ease-out var(--lock-delay);
+  }
+
   .strip {
     display: flex;
     flex-direction: column;
@@ -239,6 +317,24 @@
     transition:
       opacity 160ms ease-out,
       transform 260ms cubic-bezier(0.3, 1.5, 0.5, 1);
+  }
+
+  /* a win is stamped on the ticket, a little askew, as a weighing office would pass it */
+  .verdict.stamp {
+    padding: 0.14em 0.5em 0.18em;
+    border: 3px solid currentColor;
+    border-radius: 8px;
+    font-weight: 650;
+    mix-blend-mode: multiply;
+    transform: rotate(-4deg) scale(1.6);
+  }
+
+  /* falls onto the card: it speeds up and stops dead, with no bounce */
+  .verdict.stamp.shown {
+    transform: rotate(-4deg);
+    transition:
+      opacity 90ms ease-in,
+      transform 180ms cubic-bezier(0.55, 0, 0.9, 0.45);
   }
 
   .balanced .verdict {
@@ -323,6 +419,29 @@
     }
   }
 
+  @keyframes knock {
+    30% {
+      transform: translateY(3px) scale(0.985);
+    }
+  }
+
+  @keyframes click {
+    40% {
+      transform: translateY(0.05em);
+    }
+  }
+
+  @keyframes glint {
+    from {
+      opacity: 1;
+      background-position: 100% 0;
+    }
+    to {
+      opacity: 1;
+      background-position: 0 0;
+    }
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .dim,
     .ticket,
@@ -334,11 +453,23 @@
       transform: none;
     }
 
-    .ticket {
-      animation-name: fade;
+    .ticket,
+    .ticket.stamped {
+      animation: fade 150ms ease-out;
     }
 
-    .verdict.shown {
+    .ticket.stamped::after,
+    .wheel.locked {
+      animation: none;
+    }
+
+    .verdict.stamp,
+    .verdict.stamp.shown {
+      transform: rotate(-4deg);
+    }
+
+    .verdict.shown,
+    .verdict.stamp.shown {
       transition: opacity 150ms ease-out;
     }
   }
@@ -356,6 +487,10 @@
 
     .verdict {
       font-size: 22px;
+    }
+
+    .verdict.stamp {
+      border-width: 2.5px;
     }
 
     .actions {
