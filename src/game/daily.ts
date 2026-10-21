@@ -5,7 +5,7 @@ import { generateGame, promptOrder, type Plan } from './generate';
 import { hashSeed, mulberry32 } from './random';
 
 /** Midnight UTC on the day puzzle #1 came out. */
-export const EPOCH = Date.UTC(2026, 9, 17);
+export const EPOCH = Date.UTC(2026, 9, 21);
 export const DAY_MS = 86_400_000;
 
 /** Today's puzzle; a new one starts at midnight UTC everywhere. */
