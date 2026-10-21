@@ -41,6 +41,8 @@ export class Stage {
   private height = 0;
   private maxDistance = 60;
   private readonly back = new THREE.Vector3();
+  /** Where an animated move is heading, so a reframe during it keeps going that way. */
+  private heading: THREE.Vector3 | undefined;
   private readonly right = new THREE.Vector3();
   private readonly up = new THREE.Vector3();
   private readonly centre = new THREE.Vector3();
@@ -95,6 +97,7 @@ export class Stage {
     controls.touches.two = CameraControls.ACTION.TOUCH_DOLLY;
     controls.touches.three = CameraControls.ACTION.NONE;
     this.controls = controls;
+    controls.addEventListener('rest', () => (this.heading = undefined));
 
     this.observer = new ResizeObserver(() => this.resize());
     this.observer.observe(host);
@@ -102,11 +105,11 @@ export class Stage {
   }
 
   /** Margins, in pixels, kept clear of whatever is framed: the overlays drawn over the scene. */
-  setInsets(insets: Insets): void {
+  setInsets(insets: Insets, animate = false): void {
     const i = this.insets;
     if (i.top === insets.top && i.right === insets.right && i.bottom === insets.bottom && i.left === insets.left) return;
     this.insets = insets;
-    if (this.width > 0) this.frame(this.box, undefined, false);
+    if (this.width > 0) this.frame(this.box, this.heading, animate || this.heading !== undefined);
   }
 
   /**
@@ -119,6 +122,7 @@ export class Stage {
     this.box.copy(box);
     if (this.width === 0) return;
     const back = direction ? this.back.copy(direction) : this.currentDirection();
+    if (direction) this.heading = animate ? (this.heading ?? new THREE.Vector3()).copy(direction) : undefined;
     const right = this.right.crossVectors(UP, back).normalize();
     const up = this.up.crossVectors(back, right);
     const { top, right: r, bottom, left } = this.insets;
