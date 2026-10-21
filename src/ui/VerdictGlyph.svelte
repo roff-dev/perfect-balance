@@ -8,7 +8,7 @@
   let { verdict }: Props = $props();
 </script>
 
-<!-- the share card's ■ ▲ ▼, so colour is never the only cue -->
+<!-- the share text's ■ ▲ ▼, so colour is never the only cue -->
 <svg viewBox="0 0 12 12" width="0.62em" height="0.62em" aria-hidden="true">
   {#if verdict === 'balanced'}
     <rect x="1" y="1" width="10" height="10" rx="1" />

@@ -110,7 +110,7 @@
 </section>
 
 <style>
-  /* a trader's weighing slip: the share card's double brass rule over raised paper */
+  /* a trader's weighing slip: a double brass rule over raised paper */
   .slip {
     container-type: inline-size;
     display: flex;

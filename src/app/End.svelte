@@ -2,7 +2,7 @@
   import { onMount } from 'svelte';
   import { countdown, msUntilNext } from '../game/daily';
   import { spokenResult, type Result } from '../game/judge';
-  import { drawCard, shareResult, shareText } from '../game/share';
+  import { copyText, shareResult, shareText } from '../game/share';
   import type { Mode } from '../game/storage';
   import Drum from '../ui/Drum.svelte';
   import VerdictGlyph from '../ui/VerdictGlyph.svelte';
@@ -30,37 +30,24 @@
   const wins = $derived(results.filter((r) => r.verdict === 'balanced').length);
   const digits = $derived([...String(wins)].map(Number));
   let heading: HTMLElement;
-  let card: File | undefined;
   let shownStreak = $state(0);
 
   onMount(() => {
     heading.focus();
     shownStreak = streak?.from ?? 0;
     const timer = streak && setTimeout(() => (shownStreak = streak.to), 1100);
-    // drawn now, so sharing can happen straight from the tap
-    if (puzzle) {
-      const n = puzzle.n;
-      void drawCard(n, results, location.host)
-        .then((blob) => (card = new File([blob], `perfect-balance-${n}.png`, { type: 'image/png' })))
-        .catch(() => {});
-    }
     return () => clearTimeout(timer);
   });
 
   async function share(): Promise<void> {
     if (!puzzle) return;
-    const outcome = await shareResult(shareText(puzzle.n, results, `${location.origin}/`), card);
+    const outcome = await shareResult(shareText(puzzle.n, results, `${location.origin}/`));
     if (outcome === 'copied') ontoast('Copied');
     else if (outcome === 'failed') ontoast("Couldn't share or copy from this browser.");
   }
 
   async function copyLink(): Promise<void> {
-    try {
-      await navigator.clipboard.writeText(location.href);
-      ontoast('Link copied');
-    } catch {
-      ontoast("Couldn't copy the link from this browser.");
-    }
+    ontoast((await copyText(location.href)) ? 'Link copied' : "Couldn't copy the link from this browser.");
   }
 </script>
 
