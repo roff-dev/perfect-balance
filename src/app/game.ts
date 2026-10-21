@@ -4,7 +4,7 @@ import { CONFIG } from '../game/config';
 import { judge, spokenResult, type Margin, type Result } from '../game/judge';
 import type { RoundSupply } from '../game/freeplay';
 import type { Item, Round } from '../game/round';
-import { tipFor, WOBBLE, type BeamMotion } from '../physics/beam';
+import { finalAngle, motionSeconds, teeterFor, type BeamMotion } from '../physics/beam';
 import { PhysicsClient } from '../physics/client';
 import { POSE_STRIDE, RIG_ENTRIES, type Snapshot } from '../physics/protocol';
 import { locate, PAN_FLOOR_TOP, panRestY, RIG, type Quat, type Vec3 } from '../physics/rig';
@@ -46,7 +46,11 @@ export type Phase = 'loading' | 'intro' | 'placing' | 'locking' | 'revealing' | 
 const FADE_SECONDS = 0.18;
 const LOCK_AT = [0.9, 0.2] as const;
 const PIN_SECONDS = [0.35, 0.1] as const;
-const RESULT_DELAY = [0.5, 0.3] as const;
+/** A beat between the beam coming to rest and the result. */
+const RESULT_DELAY = [0.35, 0.1] as const;
+/** A hurried reveal: the camera and fades run this much faster, and the beam goes straight to where it ends. */
+const HURRY_SPEED = 6;
+const HURRY_SECONDS = 0.3;
 const LEVEL_SECONDS = [0.5, 0.15] as const;
 const PIN_TRAVEL = 0.14;
 /** The prompt is lowered onto its pan from this far above, over this long. */
@@ -176,6 +180,9 @@ export class Game implements GestureTarget {
   private motion: BeamMotion = { kind: 'locked' };
   private fading: number[] = [];
   private beamStarted = false;
+  /** When the result shows, in the revealing phase's time. */
+  private resultAt = 0;
+  private hurried = false;
   private pinOut = 0;
   private pinTarget = 0;
 
@@ -262,6 +269,7 @@ export class Game implements GestureTarget {
           },
           put: (itemId: string, x: number, y: number, z: number) => this.addBody(itemId, { pos: [x, y, z], quat: [0, 0, 0, 1] }),
           lockIn: () => this.lockIn(),
+          hurry: () => this.hurry(),
           crash: () => this.physics.onError('A test crash'),
           stage: () => this.stage,
           round: () => ({
@@ -433,8 +441,8 @@ export class Game implements GestureTarget {
   }
 
   /** Space taken by the overlays at each edge of the scene, so framing keeps clear of them. */
-  setInsets(insets: Insets): void {
-    this.stage.setInsets(insets);
+  setInsets(insets: Insets, animate = false): void {
+    this.stage.setInsets(insets, animate);
   }
 
   /** The scale, the prompt and the player's stack; fallen objects don't pull the camera back. */
@@ -686,10 +694,11 @@ export class Game implements GestureTarget {
     this.motion = win
       ? this.calm
         ? { kind: 'locked' }
-        : WOBBLE
+        : teeterFor(this.result.ratio, true)
       : this.calm
         ? { kind: 'tip', direction: this.result.ratio > 1 ? 1 : -1, duration: 0.3 }
-        : tipFor(this.result.ratio);
+        : teeterFor(this.result.ratio, false);
+    this.hurried = false;
     this.fading = bodies.filter((b) => !b.onPan).map((b) => b.id);
     this.selected = undefined;
     this.beamStarted = false;
@@ -707,10 +716,30 @@ export class Game implements GestureTarget {
     for (const id of [...this.bodies.keys()]) this.removeBody(id);
     this.physics.remove(this.promptId);
     this.meshes.remove(this.promptId);
-    const q = this.scale.beam.quaternion;
-    this.physics.beam({ kind: 'level', from: -2 * Math.atan2(q.z, q.w), duration: LEVEL_SECONDS[this.calm ? 1 : 0] });
+    this.physics.beam({ kind: 'level', from: this.beamNow(), duration: LEVEL_SECONDS[this.calm ? 1 : 0] });
     this.result = undefined;
     this.setPhase('clearing');
+  }
+
+  /** A tap or key during the reveal: the rest of it plays out in a moment, ending where it would have. */
+  hurry(): void {
+    if (this.hurried || (this.phase !== 'locking' && this.phase !== 'revealing')) return;
+    this.hurried = true;
+    if (this.phase === 'revealing') this.startBeam();
+  }
+
+  /** Positive lowers the player's pan, as in `beamAngle`. */
+  private beamNow(): number {
+    const q = this.scale.beam.quaternion;
+    return -2 * Math.atan2(q.z, q.w);
+  }
+
+  /** Lets the beam go, or, when hurried, eases it straight to where its motion ends. */
+  private startBeam(): void {
+    const motion: BeamMotion = this.hurried ? { kind: 'level', from: this.beamNow(), to: finalAngle(this.motion), duration: HURRY_SECONDS } : this.motion;
+    this.physics.beam(motion);
+    this.beamStarted = true;
+    this.resultAt = this.phaseTime + motionSeconds(motion) + RESULT_DELAY[this.calm || this.hurried ? 1 : 0];
   }
 
   private setPhase(phase: Phase): void {
@@ -719,7 +748,7 @@ export class Game implements GestureTarget {
   }
 
   private advanceReveal(dt: number): void {
-    this.phaseTime += dt;
+    this.phaseTime += this.hurried && this.phase === 'locking' ? dt * HURRY_SPEED : dt;
     const i = this.calm ? 1 : 0;
     if (this.phase === 'locking') {
       const shrink = Math.max(0.001, 1 - this.phaseTime / FADE_SECONDS);
@@ -736,11 +765,8 @@ export class Game implements GestureTarget {
         this.setPhase('revealing');
       }
     } else if (this.phase === 'revealing') {
-      if (!this.beamStarted && this.phaseTime >= PIN_SECONDS[i]) {
-        this.physics.beam(this.motion);
-        this.beamStarted = true;
-      }
-      if (this.phaseTime >= PIN_SECONDS[i] + RESULT_DELAY[i]) {
+      if (!this.beamStarted && (this.hurried || this.phaseTime >= PIN_SECONDS[i])) this.startBeam();
+      if (this.beamStarted && this.phaseTime >= this.resultAt) {
         this.setPhase('result');
         this.onAnnounce(spokenResult(this.result!));
         this.onResult(this.index, this.result!);

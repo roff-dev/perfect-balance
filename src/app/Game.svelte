@@ -5,6 +5,7 @@
   import type { RoundSupply } from '../game/freeplay';
   import InventorySheet from '../ui/InventorySheet.svelte';
   import Slip from '../ui/Slip.svelte';
+  import Ticket from '../ui/Ticket.svelte';
   import VerdictGlyph from '../ui/VerdictGlyph.svelte';
   import { DAILY_LIMITS, Game, type Limits, type PlacingState, type Selection, type View } from './game';
   import Leave from './Leave.svelte';
@@ -34,6 +35,7 @@
   // a new game mounts a new screen, so only the first value matters
   const resumed = untrack(() => [...played]);
 
+  let layout: HTMLElement;
   let stage: HTMLDivElement;
   let host: HTMLDivElement;
   let top: HTMLElement;
@@ -105,12 +107,51 @@
     announcement = message;
   }
 
-  /** Keeps the framed scale clear of the prompt, the View button and the status line. */
-  function measure(): void {
+  // the panel slides away while a round is weighed and its result shows (notes item 5)
+  const away = $derived((placing.phase === 'locking' || placing.phase === 'revealing' || placing.phase === 'result') && !error);
+  let ticket = $state<ReturnType<typeof Ticket>>();
+  /** The part of the screen the scale is framed in, from each edge: the ticket is centred there too. */
+  let clear = $state({ top: 0, right: 0, bottom: 0, left: 0 });
+
+  /**
+   * Keeps the framed scale clear of the prompt, the View button, the status line and the panels.
+   * The canvas fills the screen, so while the panel is away the scale can grow into its space.
+   */
+  function measure(animate = false): void {
+    // never while something's held: the floor row comes and goes mid-drag, and the pan mustn't move under the finger
+    if (placing.carrying !== undefined) {
+      remeasure = true;
+      return;
+    }
+    const l = layout.getBoundingClientRect();
     const s = stage.getBoundingClientRect();
-    const clear = Math.max(top.getBoundingClientRect().bottom, toggle.getBoundingClientRect().bottom) - s.top;
-    const bottom = s.bottom - foot.getBoundingClientRect().top;
-    game?.setInsets({ top: clear + 8, right: 12, bottom: bottom + 4, left: 12 });
+    const free = away && !slipOpen;
+    const beside = !!sheet && sheet.offsetLeft > stage.offsetLeft;
+    const right = free && beside ? l.right : s.right;
+    const bottom = free && !beside ? l.bottom - 16 : foot.getBoundingClientRect().top;
+    const above = Math.max(top.getBoundingClientRect().bottom, toggle.getBoundingClientRect().bottom);
+    clear = { top: above - l.top, right: l.right - right, bottom: l.bottom - (free && !beside ? l.bottom : s.bottom), left: s.left - l.left };
+    game?.setInsets({ top: above - l.top + 8, right: l.right - right + 12, bottom: l.bottom - bottom + 4, left: s.left - l.left + 12 }, animate);
+  }
+
+  let remeasure = false;
+
+  $effect(() => {
+    void away;
+    untrack(() => game && measure(true));
+  });
+
+  $effect(() => {
+    if (placing.carrying !== undefined || !remeasure) return;
+    remeasure = false;
+    untrack(() => measure(true));
+  });
+
+  /** A tap or a key during the reveal hurries it along: first the beam, then the ticket. */
+  function hurry(e: Event): void {
+    if (e instanceof KeyboardEvent && (e.repeat || ['Shift', 'Control', 'Alt', 'Meta'].includes(e.key))) return;
+    if (placing.phase === 'locking' || placing.phase === 'revealing') game?.hurry();
+    else if (placing.phase === 'result') ticket?.finish();
   }
 
   // giving up (§16): the rounds not played score as empty pans
@@ -199,10 +240,11 @@
     g.start().catch((e: unknown) => (error = e instanceof Error ? e.message : String(e)));
     game = g;
     measure();
-    const observer = new ResizeObserver(measure);
+    // eased, as a resized canvas was before it filled the screen
+    const observer = new ResizeObserver(() => measure(true));
     observer.observe(stage);
     observer.observe(top);
-    void document.fonts.ready.then(measure);
+    void document.fonts.ready.then(() => measure());
     return () => {
       observer.disconnect();
       g.dispose();
@@ -210,9 +252,10 @@
   });
 </script>
 
-<svelte:window onkeydown={keydown} />
+<svelte:window onkeydown={keydown} onkeydowncapture={hurry} onpointerdowncapture={hurry} />
 
 <main
+  bind:this={layout}
   class="layout"
   class:carrying={placing.carrying !== undefined}
   class:slip-open={slipOpen}
@@ -220,6 +263,10 @@
   onpointerout={unpoint}
   onfocusin={point}
   onfocusout={unpoint}
+  style:--clear-top="{clear.top}px"
+  style:--clear-right="{clear.right}px"
+  style:--clear-bottom="{clear.bottom}px"
+  style:--clear-left="{clear.left}px"
 >
   <div class="stage" bind:this={stage}>
     <div class="canvas" bind:this={host} role="img" aria-label={description}></div>
@@ -357,11 +404,14 @@
     onreset={() => game?.reset()}
     onreturnall={() => game?.returnAll()}
     onlockin={() => game?.lockIn()}
-    {last}
+    {away}
     unavailable={placing.failed || error !== undefined}
     cap={limits.maxBodies < DAILY_LIMITS.maxBodies ? limits.maxBodies : undefined}
-    onnext={() => (last ? onfinish(results) : game?.nextRound())}
   />
+
+  {#if placing.result && !error}
+    <Ticket bind:this={ticket} result={placing.result} {last} onnext={() => (last ? onfinish(results) : game?.nextRound())} />
+  {/if}
 
   <div class="visually-hidden" aria-live="polite">{announcement}</div>
 </main>
@@ -397,9 +447,16 @@
     overflow: hidden;
   }
 
+  /* the whole screen, under the panels, so the scale can use the panel's space when it's away */
   .canvas {
-    position: absolute;
+    position: fixed;
     inset: 0;
+  }
+
+  /* positioned, so it stays above the canvas */
+  .layout > :global(.slip) {
+    position: relative;
+    z-index: 1;
   }
 
   .canvas :global(canvas) {

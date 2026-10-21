@@ -3,7 +3,6 @@
   import type { PlacingState } from '../app/game';
   import type { Item } from '../game/round';
   import HoldButton from './HoldButton.svelte';
-  import Readout from './Readout.svelte';
   import Tile from './Tile.svelte';
 
   interface Props {
@@ -13,9 +12,8 @@
     onreset: () => void;
     onreturnall: () => void;
     onlockin: () => void;
-    onnext: () => void;
-    /** After the last round the button leads to the score instead. */
-    last: boolean;
+    /** Slid out of the way while the round is weighed and its result shows. */
+    away?: boolean;
     /** A freeplay item cap, which replaces the usual "pan's full" limit. */
     cap?: number;
     /** Nothing here can be used: the round won't load, or the physics has failed. */
@@ -23,7 +21,7 @@
     element?: HTMLElement;
   }
 
-  let { items, thumbs, placing, onreset, onreturnall, onlockin, onnext, last, cap, unavailable = false, element = $bindable() }: Props = $props();
+  let { items, thumbs, placing, onreset, onreturnall, onlockin, away = false, cap, unavailable = false, element = $bindable() }: Props = $props();
 
   const sink = new Spring(0, { stiffness: 0.2, damping: 0.55 });
   $effect(() => {
@@ -43,13 +41,13 @@
   class:put-back={placing.putBack}
   class:carrying={placing.carrying !== undefined}
   class:unavailable
-  inert={unavailable}
+  class:away
+  inert={unavailable || away}
   bind:this={element}
   aria-label="Things to weigh"
   style:--sink="{sink.current}px"
 >
-  <div class="stack">
-  <div class="tray" class:hidden={placing.result}>
+  <div class="tray">
     <div class="well" data-strip>
       {#each items as item (item.id)}
         <Tile
@@ -62,12 +60,6 @@
       {/each}
     </div>
     <p class="put-back-label" aria-hidden="true">Put back</p>
-  </div>
-  {#if placing.result}
-    <div class="result">
-      <Readout result={placing.result} />
-    </div>
-  {/if}
   </div>
 
   {#if placing.full && placingPhase}
@@ -98,26 +90,22 @@
   {/if}
 
   <div class="actions">
-    {#if placing.phase === 'result'}
-      <button type="button" class="next" onclick={onnext}>{last ? 'See your score' : 'Next round'}</button>
-    {:else}
+    <HoldButton
+      label="Reset"
+      name="Reset pan, hold to confirm"
+      onconfirm={onreset}
+      disabled={!placingPhase || placing.panCount === 0}
+    />
+    <div class="lock">
       <HoldButton
-        label="Reset"
-        name="Reset pan, hold to confirm"
-        onconfirm={onreset}
-        disabled={!placingPhase || placing.panCount === 0}
+        primary
+        label={lockLabel}
+        holdingLabel="Keep holding"
+        name="Lock in, hold to confirm"
+        onconfirm={onlockin}
+        disabled={!placingPhase || !placing.ready}
       />
-      <div class="lock">
-        <HoldButton
-          primary
-          label={lockLabel}
-          holdingLabel="Keep holding"
-          name="Lock in, hold to confirm"
-          onconfirm={onlockin}
-          disabled={!placingPhase || !placing.ready}
-        />
-      </div>
-    {/if}
+    </div>
   </div>
 
   {#if placingPhase}
@@ -149,29 +137,18 @@
     border-radius: 20px 20px 0 0;
     box-shadow: 0 -12px 32px -24px rgb(31 27 23 / 0.35);
     transform: translate3d(0, var(--sink), 0);
+    transition: translate 380ms cubic-bezier(0.5, 0, 0.2, 1);
   }
 
-  /* the result takes the tray's place at the same size, so the scene doesn't resize mid-reveal */
-  .stack {
-    display: grid;
-    grid-template: minmax(0, 1fr) / minmax(0, 1fr);
+  /* while a round is weighed the scale has the whole screen; the sheet keeps its place in the layout */
+  .away {
+    translate: 0 calc(100% + 32px);
   }
 
-  .stack > * {
-    grid-area: 1 / 1;
-  }
-
-  .tray.hidden {
-    visibility: hidden;
-  }
-
-  .result {
-    --drum-size: 56px;
-    --verdict-size: 24px;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    padding: 0 max(var(--space-4), env(safe-area-inset-right)) 0 max(var(--space-4), env(safe-area-inset-left));
+  @media (prefers-reduced-motion: reduce) {
+    .sheet {
+      transition-duration: 150ms;
+    }
   }
 
   .tray {
@@ -319,29 +296,6 @@
     flex: 1;
   }
 
-  .next {
-    flex: 1;
-    min-height: var(--target);
-    border: 0;
-    border-radius: var(--radius-control);
-    background: var(--enamel);
-    color: var(--on-enamel);
-    font-size: 17px;
-    font-weight: 600;
-    cursor: pointer;
-    animation: arrive 260ms ease-out;
-  }
-
-  .next:active {
-    transform: scale(0.98);
-  }
-
-  @keyframes arrive {
-    from {
-      opacity: 0;
-    }
-  }
-
   .hint {
     display: none;
     margin: 0;
@@ -431,23 +385,6 @@
       line-height: 1.15;
     }
 
-    .stack {
-      flex: 1;
-      min-height: 0;
-    }
-
-    .result {
-      --drum-size: 28px;
-      --verdict-size: 18px;
-      justify-content: flex-start;
-      padding: var(--space-2) max(var(--space-2), env(safe-area-inset-right)) 0 var(--space-2);
-    }
-
-    .result :global(.readout) {
-      flex-direction: column;
-      align-items: flex-start;
-    }
-
     .actions {
       flex-direction: column;
       gap: var(--space-2);
@@ -467,8 +404,8 @@
       display: none;
     }
 
-    .next {
-      font-size: var(--text-ui);
+    .away {
+      translate: calc(100% + 32px) 0;
     }
   }
 
@@ -536,22 +473,8 @@
       padding: 0;
     }
 
-    .stack {
-      flex: 1;
-      min-height: 0;
-    }
-
-    .result {
-      --drum-size: 64px;
-      --verdict-size: 30px;
-      justify-content: flex-start;
-      padding: var(--space-6) var(--space-2) 0;
-    }
-
-    .result :global(.readout) {
-      flex-direction: column;
-      align-items: flex-start;
-      gap: var(--space-3);
+    .away {
+      translate: calc(100% + 32px) 0;
     }
 
     .actions {
