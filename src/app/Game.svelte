@@ -576,6 +576,10 @@
     -webkit-line-clamp: 2;
     line-clamp: 2;
     overflow: hidden;
+    /* the tight lines are shorter than the face, so the clamp's clip took the tails off g, y and p (notes item 9):
+       room for them below, given back so nothing moves */
+    padding-bottom: 0.16em;
+    margin-bottom: -0.16em;
     font-size: clamp(26px, 3vw + 14px, 44px);
     line-height: 1.02;
     letter-spacing: -0.01em;
