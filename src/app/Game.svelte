@@ -274,7 +274,12 @@
     <header class="top" bind:this={top}>
       <div class="bar">
         <button type="button" class="mark" aria-label="Leave this game" aria-haspopup="dialog" onclick={() => (leaving = true)}>
-          <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M12 4v15M7 20h10M4 7h16M6 7l-3 7h6zM18 7l-3 7h6z" /></svg>
+          <!-- the scale, which turns into a back arrow on hover and focus (notes item 12) -->
+          <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+            <path class="stand" d="M12 4v15M7 20h10M6 7l-3 7h6zM18 7l-3 7h6z" />
+            <path class="beam" d="M4 7h16" />
+            <path class="head" d="M10 6l-6 6 6 6" pathLength="1" />
+          </svg>
         </button>
         <p class="rounds">
           {#if endless}
@@ -474,38 +479,117 @@
     pointer-events: none;
   }
 
-  /* the mark's 44 px target overlaps the space around the dots, so the prompt stays where it was */
+  /* the mark's 44 px target reaches 5 px past its disc, so the disc lines up with the prompt */
   .bar {
     display: flex;
     align-items: center;
-    gap: var(--space-1);
-    margin: -15px 0 calc(var(--space-2) - 15px) -11px;
+    gap: var(--space-2);
+    margin: -5px 0 calc(var(--space-2) - 5px) -5px;
   }
 
   .mark {
+    position: relative;
     display: grid;
     place-items: center;
     width: var(--target);
     height: var(--target);
     padding: 0;
     border: 0;
-    border-radius: 50%;
     background: none;
     cursor: pointer;
     pointer-events: auto;
     touch-action: manipulation;
   }
 
-  .mark:hover {
-    background: rgb(184 137 47 / 0.14);
+  /* a small disc in the pills' paper, so it reads as a button at rest (notes item 12) */
+  .mark::before {
+    content: '';
+    position: absolute;
+    inset: 5px;
+    border: 1px solid var(--paper-sunk);
+    border-radius: 50%;
+    background: var(--paper-raised);
+    box-shadow: 0 6px 14px -10px rgb(31 27 23 / 0.45);
+    transition: border-color 150ms ease-out;
+  }
+
+  .mark:focus-visible {
+    outline: none;
+  }
+
+  .mark:focus-visible::before {
+    outline: var(--focus-ring);
+    outline-offset: 2px;
+  }
+
+  .mark svg {
+    position: relative;
   }
 
   .mark path {
     fill: none;
     stroke: var(--brass-ink);
-    stroke-width: 1.6;
+    stroke-width: 1.7;
     stroke-linecap: round;
     stroke-linejoin: round;
+    transform-box: view-box;
+    transform-origin: 12px 12px;
+    transition:
+      transform 250ms cubic-bezier(0.3, 0.7, 0.2, 1),
+      opacity 200ms ease-out,
+      stroke-dashoffset 220ms ease-out;
+  }
+
+  /* the beam drops to the middle and becomes the shaft; the stand falls away; the head draws in */
+  .mark .stand {
+    transform-origin: 12px 20px;
+  }
+
+  .mark .head {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+    opacity: 0;
+  }
+
+  .mark:focus-visible::before {
+    border-color: var(--ink-soft);
+  }
+
+  .mark:focus-visible .beam {
+    transform: translateY(5px);
+  }
+
+  .mark:focus-visible .stand {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+
+  .mark:focus-visible .head {
+    opacity: 1;
+    stroke-dashoffset: 0;
+    transition-delay: 0ms, 0ms, 80ms;
+  }
+
+  /* not on touch, where a hover would stick after the tap */
+  @media (hover: hover) {
+    .mark:hover::before {
+      border-color: var(--ink-soft);
+    }
+
+    .mark:hover .beam {
+      transform: translateY(5px);
+    }
+
+    .mark:hover .stand {
+      opacity: 0;
+      transform: scale(0.6);
+    }
+
+    .mark:hover .head {
+      opacity: 1;
+      stroke-dashoffset: 0;
+      transition-delay: 0ms, 0ms, 80ms;
+    }
   }
 
   .rounds {
@@ -835,10 +919,9 @@
       grid-template-columns: minmax(0, 1fr) calc(220px + env(safe-area-inset-right));
     }
 
-    /* the bar sits nearer the top here, so the target stays on screen */
+    /* less room above the prompt on a short screen */
     .bar {
-      margin-top: calc(-1 * var(--space-3));
-      margin-bottom: calc(var(--space-1) - 15px);
+      margin-bottom: calc(var(--space-1) - 5px);
     }
 
     .foot {
