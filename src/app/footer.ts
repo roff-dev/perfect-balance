@@ -12,13 +12,13 @@ export const FOOTER = {
   ],
 } as const;
 
-/** Styled by `.site-footer` in base.css. */
+/** Styled by `.site-footer` in base.css. The page links come first, on the left, as on Kieron's other sites. */
 export function footerHtml(): string {
   const links = FOOTER.links.map(({ label, href }) => `<li><a href="${href}">${label}</a></li>`).join('');
   return (
     `<footer class="site-footer">` +
-    `<p>Made by <a href="${FOOTER.maker.url}" rel="author">${FOOTER.maker.name}</a></p>` +
     `<nav aria-label="Site"><ul>${links}</ul></nav>` +
+    `<p>Made by <a href="${FOOTER.maker.url}" rel="author">${FOOTER.maker.name}</a></p>` +
     `</footer>`
   );
 }
