@@ -1,4 +1,4 @@
-// The calculator on the notes slip (§3.12): add, subtract, multiply and divide, where any number can
+// The calculator on the notes slip: add, subtract, multiply and divide, where any number can
 // carry a unit of weight. Tapping a unit gives the number that unit, or converts it if it has one.
 // It knows nothing about the round, so it can't give a weight away.
 

@@ -1,4 +1,4 @@
-// The site footer (§4.5), on the start screen and every page but the game. One constant, so the
+// The site footer, on the start screen and every page but the game. One constant, so the
 // maker's link can later point at the tools hub; the static pages get the same markup at build time.
 
 export const FOOTER = {
@@ -12,7 +12,7 @@ export const FOOTER = {
   ],
 } as const;
 
-/** Styled by `.site-footer` in base.css. The page links come first, on the left, as on Kieron's other sites. */
+/** Styled by `.site-footer` in base.css. The page links come first, on the left, as on my other sites. */
 export function footerHtml(): string {
   const links = FOOTER.links.map(({ label, href }) => `<li><a href="${href}">${label}</a></li>`).join('');
   return (

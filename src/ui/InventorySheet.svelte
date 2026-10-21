@@ -26,7 +26,7 @@
 
   let { items, thumbs, placing, onreset, onreturnall, onlockin, onbatch, away = false, cap, unavailable = false, element = $bindable() }: Props = $props();
 
-  // several at once (notes item 11): the tile under the mouse, last tapped or focused shows − and +
+  // several at once: the tile under the mouse, last tapped or focused shows − and +
   let active = $state<string>();
   const batchOf = (id: string) => (placing.batch.itemId === id ? placing.batch.n : 1);
   const most = $derived(Math.min(CONFIG.maxBatch, placing.room));

@@ -13,7 +13,7 @@
 
   let { result, last, onnext }: Props = $props();
 
-  // the reveal after the beam stops (notes items 5 and 6): the card, the count, the verdict, the button
+  // the reveal after the beam stops: the card, the count, the verdict, the button
   const ENTER_MS = 300;
   const COUNT_MS = 1300;
   const VERDICT_MS = 150;
@@ -178,7 +178,7 @@
     color: var(--ink);
   }
 
-  /* the drums of §4.4, turned by the count rather than sprung */
+  /* the score drums, turned by the count rather than sprung */
   .wheel {
     position: relative;
     display: inline-block;

@@ -1,6 +1,6 @@
 /**
  * What the game can't run without: WebGL2 for the scene and WebAssembly for the physics. A worker
- * that won't start isn't on the list, because the physics then runs on the main thread (§10.4).
+ * that won't start isn't on the list, because the physics then runs on the main thread.
  */
 export function canPlay(): boolean {
   if (typeof WebAssembly !== 'object') return false;

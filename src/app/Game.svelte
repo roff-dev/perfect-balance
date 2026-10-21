@@ -57,7 +57,7 @@
   let announcement = $state('');
   let error = $state<string | undefined>();
 
-  // the notes slip (§3.12): kept while it's closed, cleared by the next round
+  // the notes slip: kept while it's closed, cleared by the next round
   let notesButton = $state<HTMLButtonElement>();
   let slipOpen = $state(false);
   let notes = $state('');
@@ -107,7 +107,7 @@
     announcement = message;
   }
 
-  // the panel slides away while a round is weighed and its result shows (notes item 5)
+  // the panel slides away while a round is weighed and its result shows
   const away = $derived((placing.phase === 'locking' || placing.phase === 'revealing' || placing.phase === 'result') && !error);
   let ticket = $state<ReturnType<typeof Ticket>>();
   /** The part of the screen the scale is framed in, from each edge: the ticket is centred there too. */
@@ -154,7 +154,7 @@
     else if (placing.phase === 'result') ticket?.finish();
   }
 
-  // giving up (§16): the rounds not played score as empty pans
+  // giving up: the rounds not played score as empty pans
   let leaving = $state(false);
   let givingUp = false;
 
@@ -283,7 +283,7 @@
     <header class="top" bind:this={top}>
       <div class="bar">
         <button type="button" class="mark" aria-label="Leave this game" aria-haspopup="dialog" onclick={() => (leaving = true)}>
-          <!-- the scale, which turns into a back arrow on hover and focus (notes item 12) -->
+          <!-- the scale, which turns into a back arrow on hover and focus -->
           <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
             <path class="stand" d="M12 4v15M7 20h10M6 7l-3 7h6zM18 7l-3 7h6z" />
             <path class="beam" d="M4 7h16" />
@@ -511,7 +511,7 @@
     touch-action: manipulation;
   }
 
-  /* a small disc in the pills' paper, so it reads as a button at rest (notes item 12) */
+  /* a small disc in the pills' paper, so it reads as a button at rest */
   .mark::before {
     content: '';
     position: absolute;
@@ -670,7 +670,7 @@
     -webkit-line-clamp: 2;
     line-clamp: 2;
     overflow: hidden;
-    /* the tight lines are shorter than the face, so the clamp's clip took the tails off g, y and p (notes item 9):
+    /* the tight lines are shorter than the face, so the clamp's clip took the tails off g, y and p:
        room for them below, given back so nothing moves */
     padding-bottom: 0.16em;
     margin-bottom: -0.16em;

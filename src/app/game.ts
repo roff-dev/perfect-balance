@@ -23,7 +23,7 @@ const UP = new THREE.Vector3(0, 1, 0);
 const DOWN = new THREE.Vector3(0, -1, 0);
 /** The keyboard cursor stays this far in from the rim, as a fraction of the pan's radius. */
 const CURSOR_REACH = 0.8;
-/** Several of one thing at once (notes item 11), poured in this far apart. */
+/** A batch of one thing pours in this far apart. */
 const POUR_SECONDS = 0.15;
 /** Each poured copy appears this far above whatever is under the drop point. */
 const POUR_GAP = 0.02;
@@ -577,7 +577,7 @@ export class Game implements GestureTarget {
     this.place();
   }
 
-  /** Keyboard placement (§11): picks up a copy and holds it over the middle of the player's pan. */
+  /** Keyboard placement: picks up a copy and holds it over the middle of the player's pan. */
   pickUpWithKeys(source: CarrySource): boolean {
     if (!this.pickUp(source)) return false;
     this.cursor = { x: 0, z: 0 };

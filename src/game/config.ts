@@ -9,7 +9,7 @@ export const CONFIG = {
   solutionMaxItems: 30,
   /** Player bodies on the pan and the floor together. */
   maxDynamicBodies: 120,
-  /** The most of one thing a single drag carries (notes item 11). */
+  /** The most of one thing a single drag carries. */
   maxBatch: 10,
   promptCooldownPuzzles: 30,
   holdToConfirmMs: 550,
