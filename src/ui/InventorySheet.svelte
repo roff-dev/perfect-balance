@@ -1,6 +1,7 @@
 <script lang="ts">
   import { Spring, prefersReducedMotion } from 'svelte/motion';
   import type { PlacingState } from '../app/game';
+  import { CONFIG } from '../game/config';
   import type { Item } from '../game/round';
   import HoldButton from './HoldButton.svelte';
   import Tile from './Tile.svelte';
@@ -12,6 +13,8 @@
     onreset: () => void;
     onreturnall: () => void;
     onlockin: () => void;
+    /** Sets how many of an item its next drag carries. */
+    onbatch: (itemId: string, n: number) => void;
     /** Slid out of the way while the round is weighed and its result shows. */
     away?: boolean;
     /** A freeplay item cap, which replaces the usual "pan's full" limit. */
@@ -21,7 +24,40 @@
     element?: HTMLElement;
   }
 
-  let { items, thumbs, placing, onreset, onreturnall, onlockin, away = false, cap, unavailable = false, element = $bindable() }: Props = $props();
+  let { items, thumbs, placing, onreset, onreturnall, onlockin, onbatch, away = false, cap, unavailable = false, element = $bindable() }: Props = $props();
+
+  // several at once (notes item 11): the tile under the mouse, last tapped or focused shows − and +
+  let active = $state<string>();
+  const batchOf = (id: string) => (placing.batch.itemId === id ? placing.batch.n : 1);
+  const most = $derived(Math.min(CONFIG.maxBatch, placing.room));
+
+  function slotOf(e: Event): string | undefined {
+    return e.target instanceof Element ? (e.target.closest<HTMLElement>('[data-slot]')?.dataset.slot ?? undefined) : undefined;
+  }
+
+  function over(e: PointerEvent): void {
+    if (e.pointerType === 'mouse') active = slotOf(e);
+  }
+
+  function leave(e: PointerEvent): void {
+    if (e.pointerType === 'mouse') active = undefined;
+  }
+
+  // touch has no hover, so a tap picks the tile and it stays picked until another is
+  function press(e: PointerEvent): void {
+    if (e.pointerType !== 'mouse') active = slotOf(e) ?? active;
+  }
+
+  /** + and − on a focused tile, so the keyboard needs no extra stops. */
+  function key(e: KeyboardEvent): void {
+    const tile = e.target instanceof HTMLElement && e.target.matches('[data-item]:not([data-source])') ? e.target : null;
+    if (!tile || e.ctrlKey || e.metaKey || e.altKey) return;
+    const step = e.key === '+' || e.key === '=' ? 1 : e.key === '-' || e.key === '_' ? -1 : 0;
+    if (!step) return;
+    e.preventDefault();
+    const id = tile.dataset.item!;
+    onbatch(id, batchOf(id) + step);
+  }
 
   const sink = new Spring(0, { stiffness: 0.2, damping: 0.55 });
   $effect(() => {
@@ -48,15 +84,42 @@
   style:--sink="{sink.current}px"
 >
   <div class="tray">
-    <div class="well" data-strip>
+    <!-- svelte-ignore a11y_no_static_element_interactions -->
+    <div
+      class="well"
+      data-strip
+      onpointerover={over}
+      onpointerleave={leave}
+      onpointerdown={press}
+      onfocusin={(e) => (active = slotOf(e))}
+      onkeydown={key}
+    >
       {#each items as item (item.id)}
-        <Tile
-          {item}
-          thumb={thumbs.get(item.id)}
-          count={placing.onPan[item.id] ?? 0}
-          full={placing.full || !placingPhase}
-          held={placing.carrying === item.id}
-        />
+        {@const n = batchOf(item.id)}
+        {@const stepping = placingPhase && !placing.full && (active === item.id || n > 1)}
+        <div class="slot" data-slot={item.id}>
+          <Tile
+            {item}
+            thumb={thumbs.get(item.id)}
+            count={placing.onPan[item.id] ?? 0}
+            batch={n}
+            covered={stepping}
+            full={placing.full || !placingPhase}
+            held={placing.carrying === item.id}
+          />
+          {#if stepping}
+            <!-- pointer only: a focused tile takes + and − from the keyboard -->
+            <div class="stepper" class:set={n > 1}>
+              <button type="button" tabindex="-1" aria-label="One fewer {item.name}" disabled={n <= 1} onclick={() => onbatch(item.id, n - 1)}>
+                <svg viewBox="0 0 12 12" width="12" height="12" aria-hidden="true"><path d="M2 6h8" /></svg>
+              </button>
+              <span class="n" aria-hidden="true">×{n}</span>
+              <button type="button" tabindex="-1" aria-label="One more {item.name}" disabled={n >= most} onclick={() => onbatch(item.id, n + 1)}>
+                <svg viewBox="0 0 12 12" width="12" height="12" aria-hidden="true"><path d="M2 6h8M6 2v8" /></svg>
+              </button>
+            </div>
+          {/if}
+        </div>
       {/each}
     </div>
     <p class="put-back-label" aria-hidden="true">Put back</p>
@@ -103,7 +166,7 @@
         holdingLabel="Keep holding"
         name="Lock in, hold to confirm"
         onconfirm={onlockin}
-        disabled={!placingPhase || !placing.ready}
+        disabled={!placingPhase || !placing.ready || placing.pouring}
       />
     </div>
   </div>
@@ -174,6 +237,79 @@
 
   .well::-webkit-scrollbar {
     display: none;
+  }
+
+  .slot {
+    position: relative;
+    flex: none;
+  }
+  /* sits over the foot of the tile, where its name is; the status line names it meanwhile */
+  .stepper {
+    position: absolute;
+    right: 3px;
+    bottom: 3px;
+    left: 3px;
+    display: grid;
+    grid-template-columns: 26px 1fr 26px;
+    align-items: center;
+    height: 26px;
+    border-radius: var(--radius-control);
+    background: var(--paper);
+    box-shadow:
+      0 1px 0 rgb(31 27 23 / 0.08),
+      inset 0 0 0 1px rgb(122 86 23 / 0.35);
+    animation: step-in 140ms ease-out;
+  }
+
+  /* a count above one stays on show, in brass, until it's used */
+  .stepper.set {
+    background: color-mix(in srgb, var(--brass) 18%, var(--paper));
+  }
+
+  .stepper button {
+    display: grid;
+    place-items: center;
+    height: 26px;
+    padding: 0;
+    border: 0;
+    border-radius: var(--radius-control);
+    background: none;
+    color: var(--ink);
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+
+  .stepper button:disabled {
+    color: rgb(31 27 23 / 0.25);
+    cursor: default;
+  }
+
+  @media (hover: hover) {
+    .stepper button:not(:disabled):hover {
+      background: rgb(122 86 23 / 0.14);
+    }
+  }
+
+  .stepper path {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+  }
+
+  .stepper .n {
+    font-size: 12px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    text-align: center;
+    color: var(--brass-ink);
+  }
+
+  @keyframes step-in {
+    from {
+      opacity: 0;
+      transform: translateY(3px);
+    }
   }
 
   .put-back-label {

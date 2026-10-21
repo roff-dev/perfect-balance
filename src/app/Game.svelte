@@ -44,7 +44,7 @@
   let view = $state<View>('overview');
   let sheet = $state<HTMLElement>();
   let game: Game | undefined;
-  let placing = $state<PlacingState>({ ready: false, round: resumed.length, onPan: {}, panCount: 0, floor: [], full: false, carrying: undefined, putBack: false, phase: 'intro', result: undefined, missing: [], opening: resumed.length, failed: false, progress: 0 });
+  let placing = $state<PlacingState>({ ready: false, round: resumed.length, onPan: {}, panCount: 0, floor: [], full: false, room: 0, carrying: undefined, carryingCount: 0, batch: { itemId: '', n: 1 }, pouring: false, putBack: false, phase: 'intro', result: undefined, missing: [], opening: resumed.length, failed: false, progress: 0 });
   let results = $state<Result[]>([...resumed]);
   const round = $derived(rounds.at(placing.round));
   // an object that wouldn't load is left out of the round
@@ -184,10 +184,17 @@
   let lingering: ReturnType<typeof setTimeout> | undefined;
   const named = $derived.by(() => {
     const id = placing.carrying ?? pointed;
-    return id && placing.phase === 'placing' ? inventory.find((item) => item.id === id)?.name : undefined;
+    const name = id && placing.phase === 'placing' ? inventory.find((item) => item.id === id)?.name : undefined;
+    // and how many it'll be, when that's more than one
+    const n = placing.carrying ? placing.carryingCount : placing.batch.itemId === id ? placing.batch.n : 1;
+    return name && n > 1 ? `${name} ×${n}` : name;
   });
 
-  const tileItem = (e: Event) => (e.target instanceof Element ? e.target.closest<HTMLElement>('[data-item]')?.dataset.item : undefined);
+  // a tile's − and + count as the tile
+  const tileItem = (e: Event) => {
+    const el = e.target instanceof Element ? e.target.closest<HTMLElement>('[data-item], [data-slot]') : null;
+    return el?.dataset.item ?? el?.dataset.slot;
+  };
 
   function point(e: Event): void {
     const id = tileItem(e);
@@ -205,8 +212,10 @@
     else pointed = undefined;
   }
 
+  // derived, so only a new round clears it: `placing` itself is replaced on every change
+  const roundIndex = $derived(placing.round);
   $effect(() => {
-    void placing.round;
+    void roundIndex;
     untrack(() => {
       clearTimeout(lingering);
       pointed = undefined;
@@ -409,6 +418,7 @@
     onreset={() => game?.reset()}
     onreturnall={() => game?.returnAll()}
     onlockin={() => game?.lockIn()}
+    onbatch={(itemId, n) => game?.setBatch(itemId, n)}
     {away}
     unavailable={placing.failed || error !== undefined}
     cap={limits.maxBodies < DAILY_LIMITS.maxBodies ? limits.maxBodies : undefined}

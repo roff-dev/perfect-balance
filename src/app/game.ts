@@ -23,6 +23,10 @@ const UP = new THREE.Vector3(0, 1, 0);
 const DOWN = new THREE.Vector3(0, -1, 0);
 /** The keyboard cursor stays this far in from the rim, as a fraction of the pan's radius. */
 const CURSOR_REACH = 0.8;
+/** Several of one thing at once (notes item 11), poured in this far apart. */
+const POUR_SECONDS = 0.15;
+/** Each poured copy appears this far above whatever is under the drop point. */
+const POUR_GAP = 0.02;
 const INK = '#1f1b17';
 /** Close-up distance limits, in pan diameters. */
 const CLOSE_MIN = 0.6;
@@ -73,7 +77,15 @@ export interface PlacingState {
   panCount: number;
   floor: FloorGroup[];
   full: boolean;
+  /** How many more objects this game allows out. */
+  room: number;
   carrying: string | undefined;
+  /** How many copies the held object will become. */
+  carryingCount: number;
+  /** How many of an item the next drag from its tile carries. */
+  batch: { itemId: string; n: number };
+  /** Copies of a dropped batch are still coming in. */
+  pouring: boolean;
   putBack: boolean;
   phase: Phase;
   result: Result | undefined;
@@ -160,7 +172,10 @@ export class Game implements GestureTarget {
   private nextId = 1;
   private time = 0;
   private ready = false;
-  private carrying: { itemId: string; restore?: Pose } | undefined;
+  private carrying: { itemId: string; count: number; restore?: Pose } | undefined;
+  private batch = { itemId: '', n: 1 };
+  /** The rest of a dropped batch, each one let in above the last. */
+  private pour: { itemId: string; quat: Quat; x: number; z: number; clearance: number; left: number; placed: number; wait: number } | undefined;
   private putBack = false;
   /** Keyboard placement: where on the player's pan the held object is, in pan radii from its centre. */
   private cursor: { x: number; z: number } | undefined;
@@ -270,6 +285,7 @@ export class Game implements GestureTarget {
           put: (itemId: string, x: number, y: number, z: number) => this.addBody(itemId, { pos: [x, y, z], quat: [0, 0, 0, 1] }),
           lockIn: () => this.lockIn(),
           hurry: () => this.hurry(),
+          setBatch: (itemId: string, n: number) => this.setBatch(itemId, n),
           crash: () => this.physics.onError('A test crash'),
           stage: () => this.stage,
           round: () => ({
@@ -364,6 +380,8 @@ export class Game implements GestureTarget {
     this.kinds = loaded.kinds;
     this.missing = loaded.missing;
     this.index = index;
+    this.pour = undefined;
+    this.batch = { itemId: '', n: 1 };
     // the world is empty here, so it can change size
     this.physics.scale({ unitsPerMetre: this.round.unitsPerMetre });
     this.ready = true;
@@ -510,12 +528,15 @@ export class Game implements GestureTarget {
 
   pickUp(source: CarrySource): boolean {
     this.endIntro();
-    if (!this.ready || this.phase !== 'placing' || this.ghost.active) return false;
+    // a batch pours in over a moment; the next one waits for it
+    if (!this.ready || this.phase !== 'placing' || this.ghost.active || this.pour) return false;
     let itemId: string;
     let restore: Pose | undefined;
+    let count = 1;
     if (source.kind === 'item') {
       if (this.bodies.size >= this.limits.maxBodies) return false;
       itemId = source.itemId;
+      if (this.batch.itemId === itemId) count = Math.min(this.batch.n, this.room());
     } else if (source.kind === 'floor') {
       const id = [...this.bodies].find(([, b]) => b.itemId === source.itemId && !b.onPan)?.[0];
       if (id === undefined) return false;
@@ -531,7 +552,7 @@ export class Game implements GestureTarget {
     }
     const kind = this.kind(itemId);
     this.ghost.begin(kind.geometry, kind.material, restore);
-    this.carrying = { itemId, restore };
+    this.carrying = { itemId, count, restore };
     this.selected = undefined;
     this.canvas.style.cursor = 'grabbing';
     return true;
@@ -606,20 +627,68 @@ export class Game implements GestureTarget {
   }
 
   private place(): void {
-    const { itemId } = this.carrying!;
+    const { itemId, count } = this.carrying!;
     const name = this.kind(itemId).item.name;
     if (this.putBack || !this.ghost.aiming) {
       this.onAnnounce(`Put back: ${name}.`);
     } else {
-      const id = this.addBody(itemId, this.ghost.pose());
-      const counts = this.counts();
-      this.onAnnounce(
-        this.bodies.get(id)!.onPan
-          ? `Placed: ${name}. ${plural(counts.pan, 'object', 'objects')} on your pan.`
-          : `Placed: ${name}. ${counts.floor} on the floor.`,
-      );
+      const pose = this.ghost.pose();
+      const id = this.addBody(itemId, pose);
+      if (count > 1) {
+        // the rest pour in one by one at the same spot, each landing on the one before
+        this.pour = { itemId, quat: pose.quat, x: pose.pos[0], z: pose.pos[2], clearance: this.ghost.clearance, left: count - 1, placed: 1, wait: POUR_SECONDS };
+        this.onAnnounce(`Placing ${count} × ${name}.`);
+      } else {
+        this.announcePlaced(name, this.bodies.get(id)!.onPan);
+      }
+      if (this.batch.itemId === itemId) this.batch = { itemId: '', n: 1 };
     }
     this.endCarry();
+  }
+
+  private announcePlaced(name: string, onPan: boolean): void {
+    const counts = this.counts();
+    this.onAnnounce(onPan ? `Placed: ${name}. ${plural(counts.pan, 'object', 'objects')} on your pan.` : `Placed: ${name}. ${counts.floor} on the floor.`);
+  }
+
+  /** Lets in the next copy of a poured batch when it's due, until the batch or the game's room runs out. */
+  private advancePour(dt: number): void {
+    const p = this.pour;
+    if (!p || this.phase !== 'placing') return;
+    p.wait -= dt;
+    if (p.wait > 0) return;
+    p.wait += POUR_SECONDS;
+    if (this.room() > 0) {
+      // straight down onto whatever has landed there so far
+      this.v.set(p.x, 50, p.z);
+      this.ray.set(this.v, DOWN);
+      const hit = this.ray.intersectObjects([...this.scale.surfaces, this.stage.floor, this.meshes.group], true)[0];
+      const y = (hit?.point.y ?? 0) + p.clearance + POUR_GAP;
+      this.addBody(p.itemId, { pos: [p.x, y, p.z], quat: p.quat });
+      p.placed++;
+      p.left--;
+    } else {
+      p.left = 0;
+    }
+    if (p.left > 0) return;
+    this.pour = undefined;
+    const counts = this.counts();
+    this.onAnnounce(`Placed ${p.placed} × ${this.kind(p.itemId).item.name}. ${plural(counts.pan, 'object', 'objects')} on your pan.`);
+  }
+
+  private room(): number {
+    return Math.max(0, this.limits.maxBodies - this.bodies.size);
+  }
+
+  /** How many of an item its next drag from the shelf carries, from 1 to `CONFIG.maxBatch` or the room left. */
+  setBatch(itemId: string, n: number): void {
+    if (this.phase !== 'placing' && this.phase !== 'intro') return;
+    const clamped = Math.max(1, Math.min(CONFIG.maxBatch, this.room(), Math.round(n)));
+    if (this.batch.itemId === itemId && this.batch.n === clamped) return;
+    this.batch = { itemId, n: clamped };
+    // at once, not next frame, so a quick second press counts from this one
+    this.emitState();
+    this.onAnnounce(`${this.kind(itemId).item.name}: ${clamped} at a time.`);
   }
 
   tap(id: number | undefined): void {
@@ -667,6 +736,7 @@ export class Game implements GestureTarget {
     if (this.phase !== 'placing') return;
     const onPan = [...this.bodies].filter(([, b]) => b.onPan);
     if (onPan.length === 0) return;
+    this.pour = undefined;
     for (const [id] of onPan) this.removeBody(id);
     this.onAnnounce('Pan cleared.');
   }
@@ -686,7 +756,8 @@ export class Game implements GestureTarget {
    */
   lockIn(): void {
     this.endIntro();
-    if (!this.ready || this.phase !== 'placing' || this.carrying) return;
+    // a batch still pouring in would land during the reveal
+    if (!this.ready || this.phase !== 'placing' || this.carrying || this.pour) return;
     this.calm = reducedMotion();
     const bodies = [...this.bodies].map(([id, b]) => ({ id, kg: this.kind(b.itemId).item.kg, onPan: b.onPan }));
     this.result = judge(bodies, this.round.prompt.kg, this.limits.margin);
@@ -799,6 +870,7 @@ export class Game implements GestureTarget {
   private frame(dt: number): void {
     this.time += dt;
     this.advanceReveal(dt);
+    this.advancePour(dt);
     this.physics.tick(dt);
     const snap = this.physics.latest;
     if (snap) {
@@ -890,7 +962,11 @@ export class Game implements GestureTarget {
         .filter((item) => floor.has(item.id))
         .map((item) => ({ itemId: item.id, name: item.name, count: floor.get(item.id)! })),
       full: this.bodies.size >= this.limits.maxBodies,
+      room: this.room(),
       carrying: this.carrying?.itemId,
+      carryingCount: this.carrying?.count ?? 0,
+      batch: this.batch,
+      pouring: this.pour !== undefined,
       putBack: this.putBack,
       phase: this.phase,
       result: this.phase === 'result' ? this.result : undefined,

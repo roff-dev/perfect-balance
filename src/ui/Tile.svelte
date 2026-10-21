@@ -5,13 +5,19 @@
     item: Item;
     thumb: string | undefined;
     count: number;
+    /** How many its next drag carries. */
+    batch?: number;
+    /** The − / + stepper sits over its foot, so the name steps aside. */
+    covered?: boolean;
     full: boolean;
     held: boolean;
   }
 
-  let { item, thumb, count, full, held }: Props = $props();
+  let { item, thumb, count, batch = 1, covered = false, full, held }: Props = $props();
 
-  const label = $derived(count > 0 ? `${item.name}, ${count} on your pan` : item.name);
+  const label = $derived(
+    [item.name, count > 0 && `${count} on your pan`, batch > 1 && `${batch} at a time`].filter(Boolean).join(', '),
+  );
 </script>
 
 <button type="button" class="tile" class:held data-item={item.id} aria-label={label} aria-disabled={full}>
@@ -22,7 +28,7 @@
       <span class="swatch" style:background={item.color}></span>
     {/if}
   </span>
-  <span class="name" aria-hidden="true">{item.name}</span>
+  <span class="name" class:covered aria-hidden="true">{item.name}</span>
   {#if count > 0}
     <span class="count" aria-hidden="true">×{count}</span>
   {/if}
@@ -114,6 +120,11 @@
     line-height: 1.15;
     text-align: center;
     color: var(--ink);
+  }
+
+  /* a two-line name would peek out above the stepper */
+  .name.covered {
+    visibility: hidden;
   }
 
   .count {

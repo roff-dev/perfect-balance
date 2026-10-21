@@ -148,6 +148,11 @@ export class Ghost {
     this.updateGuide();
   }
 
+  /** How far its centre sits above the surface it's aimed at, as it's now turned. */
+  get clearance(): number {
+    return this.target.y - this.surface.y;
+  }
+
   /** Where it will enter the physics world: the final hover point, not the eased one. */
   pose(): Pose {
     const mesh = this.mesh!;
